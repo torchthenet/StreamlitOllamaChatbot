@@ -3,6 +3,9 @@
 Chatbot.py - Basic chatbot app for Ollama
 """
 
+import os
+import sys
+import logging
 import streamlit as st
 import ollama
 import time
@@ -155,8 +158,26 @@ def ChatbotModule():
     # Display the chat history if it exists
     DisplayChatHistory()
     # Provide an editable text box for the next prompt
-    if chatbot_prompt:=st.chat_input():
-        st.session_state['chatbot_prompt']=chatbot_prompt
+    # the st.chat_input always displays at the bottom of the screen
+    # Pressing return submits the prompt, which makes it hard to structure
+    # a prompt with context.
+    # Switching this back to st.text_area instead.
+    # if chatbot_prompt:=st.chat_input():
+    #     st.session_state['chatbot_prompt']=chatbot_prompt
+    #     GenerateNextResponse()
+    if 'chatbot_prompt' not in st.session_state:
+        st.session_state['chatbot_prompt']='Enter your prompt here'
+    with st.expander(label="Question",
+                     expanded=True,
+                     icon=':material/person:'):
+        chatbot_prompt=st.text_area(label='Question',
+                                    label_visibility='collapsed',
+                                    value=st.session_state['chatbot_prompt'],
+                                    height=100)
+    st.session_state['chatbot_prompt']=chatbot_prompt
+    button_cols=st.columns(4)
+    generate_btn=button_cols[3].button('Submit',use_container_width=True,help='Submit prompt to large language model')
+    if generate_btn:
         GenerateNextResponse()
 
 def DebuggingModule():
@@ -204,6 +225,64 @@ def ResetModule():
         del st.session_state[k]
     st.write('Application State Was Reset :material/reset_settings:')
 
+def DemonstrationModule():
+    """ Demo and test Streamlit components
+    """
+    # https://docs.streamlit.io/develop/api-reference/status
+    button_cols=st.columns(5,vertical_alignment='center')
+    success_btn=button_cols[0].button('Success',use_container_width=True,help="Demonstrate the success callout")
+    info_btn=button_cols[1].button('Info',use_container_width=True,help="Demonstrate the info callout")
+    warn_btn=button_cols[2].button('Warn',use_container_width=True,help="Demonstrate the warn callout")
+    err_btn=button_cols[3].button('Error',use_container_width=True,help="Demonstrate the error callout")
+    exception_btn=button_cols[4].button('Exception',use_container_width=True,help="Demonstrate the exception callout")
+    if success_btn:
+        st.success('This is a :blue[success] message!',icon=':material/thumb_up:')
+    if info_btn:
+        st.info('This is a :green[info] message!',icon=':material/info:')
+    if warn_btn:
+        st.warning('This is a :orange[warn] message!',icon=':material/warning:')
+    if err_btn:
+        st.error('This is a :red[error] message!',icon=':material/report:')
+    if exception_btn:
+        st.exception('This is an exception message!')
+    # https://docs.streamlit.io/develop/api-reference/layout
+    button_cols=st.columns(5,vertical_alignment='center')
+    modal_btn=button_cols[0].button('Modal Dialog',use_container_width=True,help="Demonstrate a modal dialog")
+    popover_btn=button_cols[1].button('Popover',use_container_width=True,help="Demonstrate a popover")
+    toast_btn=button_cols[2].button('Toast',use_container_width=True,help="Demonstrate a toast")
+    if modal_btn:
+        DemonstrationDialog()
+    if popover_btn:
+        with st.popover('Demonstrate Popover',help='This is a popover'):
+            st.write(':blue[Popover] message')
+    if toast_btn:
+        st.toast('This is a :red[toast]!',icon=':material/bolt:')
+
+@st.dialog('Demonstration Dialog')
+def DemonstrationDialog():
+    st.write('Press :red[Close]')
+    if st.button('Close'):
+        st.rerun()
+
+def InitializeLogging():
+    """ My standard logging utility adapted for Streamlit
+    """
+    log=st.session_state['log']
+    log.setLevel(logging.NOTSET)
+    logformat=logging.Formatter('%(asctime)s: %(levelname)8s: %(levelno)2s: %(message)s')
+    # Set file logging
+    fh=logging.FileHandler('Chatbot.log')
+    fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logformat)
+    log.addHandler(fh)
+    # Set console logging
+    ch=logging.StreamHandler()
+    ch.setLevel(logging.INFO) #Only INFO or higher will be displayed to console
+    ch.setFormatter(logformat)
+    log.addHandler(ch)
+    log.debug('Script pathname = '+__file__) # or sys.argv[0]
+    log.debug('Working directory = '+os.path.dirname(__file__)) # or os.getcwd()
+
 if __name__=='__main__':
     # See https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
     # Choose a page icon from https://share.streamlit.io/streamlit/emoji-shortcodes
@@ -219,7 +298,11 @@ if __name__=='__main__':
             'About': "# Ollama Chatbot"
         }
     )
-    st.header("Ollama Chatbot")
+    # set up logging to a log file and the console
+    if 'log' not in st.session_state:
+        st.session_state['log']=logging.getLogger()
+        InitializeLogging()
+    st.header('Ollama Chatbot')
     # Get a list of available ollama models
     model_dictionary=ollama.list()
     model_list=list()
@@ -228,21 +311,23 @@ if __name__=='__main__':
     # Allow user to select a model
     # This default to the first model
     # Ollama sorts the list by the most recently added or edited
-    model=st.sidebar.selectbox("Select model",
+    model=st.sidebar.selectbox('Select model',
                                model_list,
                                key='model')
     # Provide a list of modules to run
-    module_list=("Chatbot",
-                 "Debugging",
-                 "Reset")
-    module=st.sidebar.selectbox("Select a module",
+    module_list=('Chatbot',
+                 'Demonstration',
+                 'Debugging',
+                 'Reset')
+    module=st.sidebar.selectbox('Select a module',
                                 module_list,
                                 key='module')
     # Run the selected module
     match module:
-        case "Chatbot": ChatbotModule()
-        case "Debugging": DebuggingModule()
-        case "Reset": ResetModule()
-        case _: st.write(":construction_worker: Something is broken.")
+        case 'Chatbot': ChatbotModule()
+        case 'Demonstration': DemonstrationModule()
+        case 'Debugging': DebuggingModule()
+        case 'Reset': ResetModule()
+        case _: st.write(':construction_worker: Something is broken.')
 
 # vim: set expandtab tabstop=4 shiftwidth=4 autoindent:
