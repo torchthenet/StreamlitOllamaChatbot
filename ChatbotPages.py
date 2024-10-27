@@ -178,12 +178,10 @@ def ChatbotModule(messages_key,metrics_key,system_key,prompt_key,temperature_key
     model_list=list()
     for m in model_dictionary['models']:
         model_list.append(m['name'])
-    load_value(model_key)
-    button_cols[1].selectbox(
+    st.session_state[model_key]=button_cols[1].selectbox(
             'Select model',
             model_list,
             key='_'+model_key)
-    store_value(model_key)
     button_cols[2].slider(
             label='Temperature',
             value=0.1,
