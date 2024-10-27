@@ -4,6 +4,10 @@
 
 Web based inteface for Ollama using Streamlit framework
 
+## ChatbotTabs
+
+Hold multiple conversations with Ollama models. Each tab and each question may use a different LLM.
+
 ## Chatbot
 
 Basic chatbot using ollama models.
