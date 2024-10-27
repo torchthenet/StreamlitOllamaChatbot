@@ -1,8 +1,20 @@
 #https://docs.streamlit.io/develop/api-reference/navigation/st.navigation
 import streamlit as st
 
-def create_account():
-    st.header('Create Account')
+def chat_one():
+    st.header('First Chat')
+
+def chat_two():
+    st.header('Second Chat')
+
+def chat_three():
+    st.header('Third Chat')
+
+def chat_four():
+    st.header('Fourth Chat')
+
+def chat_five():
+    st.header('Fifth Chat')
 
 def manage_account():
     st.header('Manage Account')
@@ -17,20 +29,24 @@ def manage_account():
         st.header("An owl")
         st.image("https://static.streamlit.io/examples/owl.jpg", width=200)
 
-def learn():
-    st.header('Learn')
+def debug():
+    st.header('Debug')
 
-def trial():
-    st.header('Trial')
+def reset():
+    st.header('Reset')
 
+# 
 pages = {
-    "Your account": [
-        st.Page(create_account, title="Create your account",icon=":material/favorite:"),
-        st.Page(manage_account, title="Manage your account"),
+    "Conversations": [
+        st.Page(chat_one, title="Chat One",icon="1️⃣"),
+        st.Page(chat_two, title="Chat Two",icon="2️⃣"),
+        st.Page(chat_three, title="Chat Three",icon="3️⃣"),
+        st.Page(chat_four, title="Chat Four",icon="4️⃣"),
+        st.Page(chat_five, title="Chat Five",icon="5️⃣"),
     ],
-    "Resources": [
-        st.Page(learn, title="Learn about us"),
-        st.Page(trial, title="Try it out"),
+    "Debugging": [
+        st.Page(debug, title="Debug App"),
+        st.Page(reset, title="Reset App"),
     ],
 }
 
