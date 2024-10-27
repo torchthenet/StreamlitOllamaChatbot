@@ -29,9 +29,10 @@ def DisplayMetrics(metrics):
     milliseconds=metrics['total_duration']/1000000
     seconds=round(milliseconds/1000,2)
     metrics_string+='\nDuration (seconds) = '+str(seconds)
-    with st.expander(label='Response Metrics',
-                     expanded=True,
-                     icon=':material/stylus:'):
+    with st.expander(
+                label='Response Metrics',
+                expanded=True,
+                icon=':material/stylus:'):
         st.text(metrics_string)
 
 def SetSystemMessage():
@@ -43,13 +44,12 @@ def SetSystemMessage():
     """
     if 'cb_system' not in st.session_state:
         today=time.strftime('%A, %B %d, %Y')
-        st.session_state['cb_system']=f'Today is {today}'
+        st.session_state['cb_system']=f'Today is {today}.'
     system_message=st.text_area(
-        label='System message',
-        label_visibility='visible',
-        key='cb_system',
-        height=100,
-    )
+            label='System message',
+            label_visibility='visible',
+            key='cb_system',
+            height=100)
 
 def CheckSystemMessage():
     """ Manage the system message. If this module has just started then
@@ -65,7 +65,7 @@ def CheckSystemMessage():
         # create the system message
         message={'role':'system',
                  'content':st.session_state['cb_system']
-                 }
+                }
         if st.session_state['cb_messages']:
             # if there are messages then the system message is placed first
             if st.session_state['cb_messages'][0]['role']=='system':
@@ -103,9 +103,10 @@ def DisplayChatHistory():
                 case _:
                     label=msg['role']
                     icon=':material/stylus:'
-            with st.expander(label=label,
-                             expanded=True,
-                             icon=icon):
+            with st.expander(
+                        label=label,
+                        expanded=True,
+                        icon=icon):
                 st.write(msg['content'])
             if msg['role']=='assistant':
                 DisplayMetrics(st.session_state['cb_metrics_list'][j])
@@ -121,17 +122,17 @@ def GenerateNextResponse():
     """
     message={'role':'user',
              'content':st.session_state['chatbot_prompt']
-             }
+            }
     st.session_state['cb_messages'].append(message)
     stream=ollama.chat(
-        model=st.session_state['model'],
-        messages=st.session_state['cb_messages'],
-        options={'temperature':st.session_state['cb_temperature']},
-        stream=True
-    )
-    with st.expander(label='Response',
-                     expanded=True,
-                     icon=':material/smart_toy:'):
+            model=st.session_state['model'],
+            messages=st.session_state['cb_messages'],
+            options={'temperature':st.session_state['cb_temperature']},
+            stream=True)
+    with st.expander(
+                label='Response',
+                expanded=True,
+                icon=':material/smart_toy:'):
         response_text=st.write_stream(StreamData(stream))
     message={'role':'assistant',
             'content':response_text
@@ -142,19 +143,6 @@ def GenerateNextResponse():
 
 def ChatbotModule():
     SetSystemMessage()
-    button_cols=st.columns((1,2),vertical_alignment='center')
-    new_chat_btn=button_cols[0].button('New Chat',use_container_width=True)
-    if new_chat_btn:
-        del st.session_state['cb_system']
-        del st.session_state['cb_messages']
-        del st.session_state['cb_metrics_list']
-        st.rerun()
-    button_cols[1].slider(label='Temperature',
-                          value=0.1,
-                          min_value=0.0,
-                          max_value=1.0,
-                          step=0.1,
-                          key='cb_temperature')
     # Display the chat history if it exists
     DisplayChatHistory()
     # Provide an editable text box for the next prompt
@@ -167,16 +155,37 @@ def ChatbotModule():
     #     GenerateNextResponse()
     if 'chatbot_prompt' not in st.session_state:
         st.session_state['chatbot_prompt']='Enter your prompt here'
-    with st.expander(label="Question",
-                     expanded=True,
-                     icon=':material/person:'):
-        chatbot_prompt=st.text_area(label='Question',
-                                    label_visibility='collapsed',
-                                    value=st.session_state['chatbot_prompt'],
-                                    height=100)
+    with st.expander(
+                label="Question",
+                expanded=True,
+                icon=':material/person:'):
+        chatbot_prompt=st.text_area(
+                label='Question',
+                label_visibility='collapsed',
+                value=st.session_state['chatbot_prompt'],
+                height=100)
     st.session_state['chatbot_prompt']=chatbot_prompt
-    button_cols=st.columns(4)
-    generate_btn=button_cols[3].button('Submit',use_container_width=True,help='Submit prompt to large language model')
+    button_cols=st.columns((1,2,1),vertical_alignment='center')
+    new_chat_btn=button_cols[0].button(
+            'New Chat',
+            help='Start a new chat',
+            use_container_width=True)
+    button_cols[1].slider(
+            label='Temperature',
+            value=0.1,
+            min_value=0.0,
+            max_value=1.0,
+            step=0.1,
+            key='cb_temperature')
+    generate_btn=button_cols[2].button(
+            'Submit',
+            help='Submit prompt to large language model',
+            use_container_width=True)
+    if new_chat_btn:
+        del st.session_state['cb_system']
+        del st.session_state['cb_messages']
+        del st.session_state['cb_metrics_list']
+        st.rerun()
     if generate_btn:
         GenerateNextResponse()
 
@@ -184,10 +193,22 @@ def DebuggingModule():
     st.write('## Debugging Module')
     st.divider()
     button_cols=st.columns(4,vertical_alignment='center')
-    session_btn=button_cols[0].button('Session State',use_container_width=True,help='View session state values')
-    show_model_btn=button_cols[1].button('Show Model',use_container_width=True,help='View current model information')
-    list_models_btn=button_cols[2].button('List Models',use_container_width=True,help='View available models')
-    running_btn=button_cols[3].button('Running Models',use_container_width=True,help='View running models')
+    session_btn=button_cols[0].button(
+            'Session State',
+            help='View session state values',
+            use_container_width=True)
+    show_model_btn=button_cols[1].button(
+            'Show Model',
+            help='View current model information',
+            use_container_width=True)
+    list_models_btn=button_cols[2].button(
+            'List Models',
+            help='View available models',
+            use_container_width=True)
+    running_btn=button_cols[3].button(
+            'Running Models',
+            help='View running models',
+            use_container_width=True)
     if session_btn: ShowSessionState()
     if show_model_btn: ShowModel()
     if list_models_btn: ListModels()
@@ -196,9 +217,10 @@ def DebuggingModule():
 def ShowSessionState():
     st.write('### Show Session State')
     for k in st.session_state.keys():
-        with st.expander(label='st.session_state['+k+']',
-                         expanded=True,
-                         icon=':material/stylus:'):
+        with st.expander(
+                    label='st.session_state['+k+']',
+                    expanded=True,
+                    icon=':material/stylus:'):
             st.write(st.session_state[k])
 
 def ShowModel():
@@ -230,26 +252,50 @@ def DemonstrationModule():
     """
     # https://docs.streamlit.io/develop/api-reference/status
     button_cols=st.columns(5,vertical_alignment='center')
-    success_btn=button_cols[0].button('Success',use_container_width=True,help="Demonstrate the success callout")
-    info_btn=button_cols[1].button('Info',use_container_width=True,help="Demonstrate the info callout")
-    warn_btn=button_cols[2].button('Warn',use_container_width=True,help="Demonstrate the warn callout")
-    err_btn=button_cols[3].button('Error',use_container_width=True,help="Demonstrate the error callout")
-    exception_btn=button_cols[4].button('Exception',use_container_width=True,help="Demonstrate the exception callout")
+    success_btn=button_cols[0].button(
+            'Success',
+            help="Demonstrate the success callout",
+            use_container_width=True)
+    info_btn=button_cols[1].button(
+            'Info',
+            help="Demonstrate the info callout",
+            use_container_width=True)
+    warn_btn=button_cols[2].button(
+            'Warn',
+            help="Demonstrate the warn callout",
+            use_container_width=True)
+    err_btn=button_cols[3].button(
+            'Error',
+            help="Demonstrate the error callout",
+            use_container_width=True)
+    exception_btn=button_cols[4].button(
+            'Exception',
+            help="Demonstrate the exception callout",
+            use_container_width=True)
     if success_btn:
-        st.success('This is a :blue[success] message!',icon=':material/thumb_up:')
+        st.success('A :blue[success] message!',icon=':material/thumb_up:')
     if info_btn:
-        st.info('This is a :green[info] message!',icon=':material/info:')
+        st.info('An :green[info] message!',icon=':material/info:')
     if warn_btn:
-        st.warning('This is a :orange[warn] message!',icon=':material/warning:')
+        st.warning('A :orange[warn] message!',icon=':material/warning:')
     if err_btn:
-        st.error('This is a :red[error] message!',icon=':material/report:')
+        st.error('An :red[error] message!',icon=':material/report:')
     if exception_btn:
         st.exception('This is an exception message!')
     # https://docs.streamlit.io/develop/api-reference/layout
     button_cols=st.columns(5,vertical_alignment='center')
-    modal_btn=button_cols[0].button('Modal Dialog',use_container_width=True,help="Demonstrate a modal dialog")
-    popover_btn=button_cols[1].button('Popover',use_container_width=True,help="Demonstrate a popover")
-    toast_btn=button_cols[2].button('Toast',use_container_width=True,help="Demonstrate a toast")
+    modal_btn=button_cols[0].button(
+            'Modal Dialog',
+            help="Demonstrate a modal dialog",
+            use_container_width=True)
+    popover_btn=button_cols[1].button(
+            'Popover',
+            help="Demonstrate a popover",
+            use_container_width=True)
+    toast_btn=button_cols[2].button(
+            'Toast',
+            help="Demonstrate a toast",
+            use_container_width=True)
     if modal_btn:
         DemonstrationDialog()
     if popover_btn:
@@ -265,39 +311,40 @@ def DemonstrationDialog():
         st.rerun()
 
 def InitializeLogging():
-    """ My standard logging utility adapted for Streamlit
+    """ My typical Python logging utility adapted for Streamlit
     """
     log=st.session_state['log']
     log.setLevel(logging.NOTSET)
-    logformat=logging.Formatter('%(asctime)s: %(levelname)8s: %(levelno)2s: %(message)s')
+    logformat=logging.Formatter(
+            '%(asctime)s: %(levelname)8s: %(levelno)2s: %(message)s')
     # Set file logging
     fh=logging.FileHandler('Chatbot.log')
-    fh.setLevel(logging.DEBUG)
+    fh.setLevel(logging.INFO)
     fh.setFormatter(logformat)
     log.addHandler(fh)
     # Set console logging
     ch=logging.StreamHandler()
-    ch.setLevel(logging.INFO) #Only INFO or higher will be displayed to console
+    ch.setLevel(logging.INFO) # Display only INFO or higher to console
     ch.setFormatter(logformat)
     log.addHandler(ch)
-    log.debug('Script pathname = '+__file__) # or sys.argv[0]
-    log.debug('Working directory = '+os.path.dirname(__file__)) # or os.getcwd()
+    log.debug('Script = '+__file__) # or sys.argv[0]
+    log.debug('Working directory = '+os.path.dirname(__file__)) #or os.getcwd()
 
 if __name__=='__main__':
     # See https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
-    # Choose a page icon from https://share.streamlit.io/streamlit/emoji-shortcodes
-    # Or from https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded 
+    # Choose page icon from one of the following:
+    #  https://share.streamlit.io/streamlit/emoji-shortcodes
+    #  https://fonts.google.com/icons?icon.set=Material+Symbols&icon.style=Rounded 
     st.set_page_config(
-        page_title="Chatbot",
-        page_icon=":material/smart_toy:",
-        layout="wide",
-        initial_sidebar_state="expanded",
-        menu_items={
-            'Get Help': None,
-            'Report a bug': None,
-            'About': "# Ollama Chatbot"
-        }
-    )
+            page_title='Chatbot',
+            page_icon=':material/smart_toy:',
+            layout='wide',
+            initial_sidebar_state='expanded',
+            menu_items={
+                    'Get Help': None,
+                    'Report a bug': None,
+                    'About': '# Ollama Chatbot' 
+                    } )
     # set up logging to a log file and the console
     if 'log' not in st.session_state:
         st.session_state['log']=logging.getLogger()
@@ -311,17 +358,20 @@ if __name__=='__main__':
     # Allow user to select a model
     # This default to the first model
     # Ollama sorts the list by the most recently added or edited
-    model=st.sidebar.selectbox('Select model',
-                               model_list,
-                               key='model')
+    model=st.sidebar.selectbox(
+            'Select model',
+            model_list,
+            key='model')
     # Provide a list of modules to run
-    module_list=('Chatbot',
-                 'Demonstration',
-                 'Debugging',
-                 'Reset')
-    module=st.sidebar.selectbox('Select a module',
-                                module_list,
-                                key='module')
+    module_list=(
+            'Chatbot',
+            'Demonstration',
+            'Debugging',
+            'Reset')
+    module=st.sidebar.selectbox(
+            'Select a module',
+            module_list,
+            key='module')
     # Run the selected module
     match module:
         case 'Chatbot': ChatbotModule()
