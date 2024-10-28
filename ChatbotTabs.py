@@ -267,7 +267,10 @@ def ShowSessionState():
             st.write(st.session_state[k])
 
 def ShowModel():
-    st.write('### Show Current Model')
+    st.write('### Show Current Models')
+    # Option a: use 'tab_count' to determine key names for models
+    # Option b: iterate through all keys and match substring '^.._model$'.
+    #           this assumes there will never be more than 9 tabs?
     model_info=ollama.show(st.session_state['model'])
     st.write(model_info)
 
