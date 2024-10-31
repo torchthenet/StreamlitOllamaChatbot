@@ -1,0 +1,28 @@
+Backlog for Streamlit Chatbot bugs and features
+
+= = = = = BUGS
+
+BUG-001: Debug view model
+Created: 7:29 PM 10/29/2024
+Closed : 3:58 AM 10/31/2024
+In ChatbotPages, debug view, view model is broken.
+Only shows first chat, can't select other 4.
+Solution - show all 5 instead of requiring user to select.
+
+BUG-002: Reselect model on page change
+Created: 7:29 PM 10/29/2024
+Closed : 4:00 AM 10/31/2024
+In ChatbotPages, user must reselect desired model for the page after viewing another page.
+
+= = = = = FEATURES
+
+FEATURE-001: Save chat
+Created: 7:30 PM 10/29/2024
+Closed : tbd
+In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to save the chat to a text file.
+
+FEATURE-002: Monitor token use
+Created: 7:32 PM 10/29/2024
+Closed : tbd
+In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to see how many context tokens have been used and how many remain in the current context window.
+Need to interrogate active model to determine context size currently configured.
