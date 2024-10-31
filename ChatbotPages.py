@@ -379,11 +379,11 @@ def InitializeLogging():
     log.info('Working directory = '+os.path.dirname(__file__)) #or os.getcwd()
 
 if __name__=='__main__':
-    """ The application itself.
-    Set up the Streamlit web page, start logging (not part of Streamlit),
-    create the list of available models for each chat to choose from,
-    create menu of pages in the sidebar for chats and debugging pages.
-    """
+    # The application itself.
+    # Set up the Streamlit web page, start logging (not part of Streamlit),
+    # create the list of available models for each chat to choose from,
+    # create menu of pages in the sidebar for chats and debugging pages.
+    
     # See https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
     # Choose page icon from one of the following:
     #  https://share.streamlit.io/streamlit/emoji-shortcodes
