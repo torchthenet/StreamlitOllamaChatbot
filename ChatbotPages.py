@@ -375,8 +375,9 @@ def InitializeLogging():
     ch.setLevel(logging.INFO) # Display only INFO or higher to console
     ch.setFormatter(logformat)
     log.addHandler(ch)
-    log.info('Script = '+__file__) # or sys.argv[0]
-    log.info('Working directory = '+os.path.dirname(__file__)) #or os.getcwd()
+    log.info('Script full = '+__file__) # or sys.argv[0]
+    log.info('Script name = '+os.path.basename(__file__))
+    log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
 
 if __name__=='__main__':
     # The application itself.
