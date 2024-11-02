@@ -1,6 +1,6 @@
-# StreamlitOllama
+# StreamlitOllamaChatbot
 
- Streamlit interface for Ollama hosted LLMs
+Streamlit interface for Ollama hosted LLM chatbot
 
 Web based inteface for Ollama using Streamlit framework
 
@@ -15,11 +15,3 @@ Hold multiple conversations with Ollama models. Each tab and each question may u
 ## Chatbot
 
 Basic chatbot using ollama models.
-
-## FakeBot
-
-Another example bot from the Streamlit tutorial. This randomly selects a response from a list. It also implements streaming so you see the text appearing.
-
-## EchoBot
-
-Example bot from Streamlit tutorial. Uses chatbot interface to echo back anything the user enters.
