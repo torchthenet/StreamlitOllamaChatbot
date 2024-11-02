@@ -244,7 +244,8 @@ def ResetModule():
     st.divider()
     st.write('## Reset Module')
     for k in st.session_state.keys():
-        del st.session_state[k]
+        if k != 'log':
+            del st.session_state[k]
     st.write('Application State Was Reset :material/reset_settings:')
 
 def DemonstrationModule():
