@@ -331,7 +331,6 @@ def ListModels():
     """ Show all available models """
     st.write('### List Available Models')
     model_list=ollama.list()['models']
-    # st.write(model_list)
     for model in model_list:
         with st.expander(
                     label=f'Model {model['name']}',

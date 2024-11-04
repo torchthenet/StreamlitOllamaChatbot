@@ -6,7 +6,6 @@ Each conversation is in a different tab, potentially with a different model.
 """
 
 import os
-import sys
 import logging
 import streamlit as st
 import ollama
@@ -33,6 +32,8 @@ def load_value(key):
         st.session_state["_"+key] = st.session_state[key]
 
 def DisplayMetrics(metrics):
+    """ Format selected ollama metrics to be readable
+    """
     metrics_string='Model: '+metrics['model']
     metrics_string+='\nPrompt tokens = '+str(metrics['prompt_eval_count'])
     metrics_string+='\nResponse tokens = '+str(metrics['eval_count'])
@@ -152,6 +153,9 @@ def GenerateNextResponse(messages_key,metrics_key,prompt_key,temperature_key,mod
     st.rerun()
 
 def ChatbotModule(messages_key,metrics_key,system_key,prompt_key,temperature_key,model_key):
+    """ Manage a chatbot conversation instance.
+    Display the message history and provide text input and buttons.
+    """
     SetSystemMessage(system_key)
     # Display the chat history if it exists
     DisplayChatHistory(messages_key,system_key,metrics_key)
@@ -162,26 +166,37 @@ def ChatbotModule(messages_key,metrics_key,system_key,prompt_key,temperature_key
                 label="Question",
                 expanded=True,
                 icon=':material/person:'):
+        text_area_key=st.session_state[prompt_key]
         chatbot_prompt=st.text_area(
                 label='Question',
                 label_visibility='collapsed',
-                value=st.session_state[prompt_key],
+                value=text_area_key,
                 height=100)
     st.session_state[prompt_key]=chatbot_prompt
+    # Create 4 button areas
     button_cols=st.columns(4,vertical_alignment='bottom')
+    # New Chat button
     new_chat_btn=button_cols[0].button(
             'New Chat',
             help='Start a new chat',
             use_container_width=True)
-    # Get a list of available ollama models
-    model_dictionary=ollama.list()
-    model_list=list()
-    for m in model_dictionary['models']:
-        model_list.append(m['name'])
-    st.session_state[model_key]=button_cols[1].selectbox(
+    if new_chat_btn:
+        del st.session_state[system_key]
+        del st.session_state[messages_key]
+        del st.session_state[metrics_key]
+        st.rerun()
+    # Select Model button
+    if model_key in st.session_state:
+        index=st.session_state['model_list'].index(st.session_state[model_key])
+    else:
+        index=0
+    model=button_cols[1].selectbox(
             'Select model',
-            model_list,
+            st.session_state['model_list'],
+            index=index,
             key='_'+model_key)
+    st.session_state[model_key]=model
+    # Temperature Slider
     button_cols[2].slider(
             label='Temperature',
             value=0.1,
@@ -189,15 +204,11 @@ def ChatbotModule(messages_key,metrics_key,system_key,prompt_key,temperature_key
             max_value=1.0,
             step=0.1,
             key=temperature_key)
+    # Submit Prompt button
     generate_btn=button_cols[3].button(
             'Submit',
             help='Submit prompt to large language model',
             use_container_width=True)
-    if new_chat_btn:
-        del st.session_state[system_key]
-        del st.session_state[messages_key]
-        del st.session_state[metrics_key]
-        st.rerun()
     if generate_btn:
         GenerateNextResponse(messages_key,metrics_key,prompt_key,
                              temperature_key,model_key)
@@ -219,20 +230,27 @@ def ChatbotModuleTabs():
     st.session_state['tab_count']=tab_count
     # st.tabs() takes a list of strings.
     # Need to dynamically generate a list of strings "1" .. tab_count.
-    # tabs=st.tabs(tab_count)
-    # for i,t in enumerate(tabs):
-    #     st.t.write(f'This is tab {i}')
-    messages_key='cb_messages'
-    metrics_key='cb_metrics_list'
-    system_key='cb_system'
-    prompt_key='chatbot_prompt'
-    temperature_key='cb_temperature'
-    model_key='model'
-    st.write(f'There are {st.session_state['tab_count']} tabs.')
-    ChatbotModule(messages_key,metrics_key,system_key,prompt_key,
-                temperature_key,model_key)    
+    tab_names=[str(f'chat_{i+1}') for i in range(st.session_state['tab_count'])]
+    tabs_list=list()
+    tabs_list=st.tabs(tab_names)
+    for i in range(st.session_state['tab_count']):
+        with tabs_list[i]:
+            st.write(f'This is chat {i+1}')
+            chat_name=f'chat_{i+1}'
+            messages_key=chat_name+'_messages'
+            metrics_key=chat_name+'_metrics_list'
+            system_key=chat_name+'_system'
+            prompt_key=chat_name+'_prompt'
+            temperature_key=chat_name+'_temperature'
+            model_key=chat_name+'_model'
+            ChatbotModule(messages_key,metrics_key,system_key,prompt_key,
+                        temperature_key,model_key)
+    # st.write(f'There are {st.session_state['tab_count']} tabs.')
+    # tab_names=[str(f'tab_{i+1}') for i in range(st.session_state['tab_count'])]
+    # st.write(tab_names)
 
 def DebuggingModule():
+    """ Provide buttons to access debug views """
     st.write('## Debugging Module')
     st.divider()
     button_cols=st.columns(4,vertical_alignment='center')
@@ -258,6 +276,7 @@ def DebuggingModule():
     if running_btn: ShowRunningModels()
 
 def ShowSessionState():
+    """ Dump the session state """
     st.write('### Show Session State')
     for k in st.session_state.keys():
         with st.expander(
@@ -267,19 +286,42 @@ def ShowSessionState():
             st.write(st.session_state[k])
 
 def ShowModel():
-    st.write('### Show Current Models')
-    # Option a: use 'tab_count' to determine key names for models
-    # Option b: iterate through all keys and match substring '^.._model$'.
-    #           this assumes there will never be more than 9 tabs?
-    model_info=ollama.show(st.session_state['model'])
-    st.write(model_info)
+    """ Show current model for all tabs
+    Option a: use 'tab_count' to determine key names for models
+    Option b: iterate through all keys and match substring '^.._model$'.
+              this assumes there will never be more than 9 tabs?
+    """
+    st.write('### Show Current Model')
+    model_list=(
+            'model')
+    for model in model_list:
+        if model in st.session_state:
+            state=st.session_state[model]
+        else:
+            state='Not Selected'
+        with st.expander(
+                    label=f'Model {model} = {state}',
+                    expanded=False,
+                    icon=':material/stylus:'):
+            if model in st.session_state:
+                model_info=ollama.show(st.session_state[model])
+            else:
+                model_info=f'{model} has not been selected yet.'
+            st.write(model_info)
 
 def ListModels():
+    """ Show all available models """
     st.write('### List Available Models')
-    model_list=ollama.list()
-    st.write(model_list)
+    model_list=ollama.list()['models']
+    for model in model_list:
+        with st.expander(
+                    label=f'Model {model['name']}',
+                    expanded=False,
+                    icon=':material/stylus:'):
+            st.write(model)
 
 def ShowRunningModels():
+    """ Display models currently active in ollama """
     st.write('### Show Running Models')
     running_list=ollama.ps()
     st.write(running_list)
@@ -314,10 +356,16 @@ def InitializeLogging():
     ch.setLevel(logging.INFO) # Display only INFO or higher to console
     ch.setFormatter(logformat)
     log.addHandler(ch)
-    log.info('Script = '+__file__) # or sys.argv[0]
-    log.info('Working directory = '+os.path.dirname(__file__)) #or os.getcwd()
+    log.info('Script full = '+__file__) # or sys.argv[0]
+    log.info('Script name = '+os.path.basename(__file__))
+    log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
 
 if __name__=='__main__':
+    # The application itself.
+    # Set up the Streamlit web page, start logging (not part of Streamlit),
+    # create the list of available models for each chat to choose from,
+    # create menu of pages in the sidebar for chats and debugging pages.
+    
     # See https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
     # Choose page icon from one of the following:
     #  https://share.streamlit.io/streamlit/emoji-shortcodes
@@ -336,6 +384,12 @@ if __name__=='__main__':
     if 'log' not in st.session_state:
         st.session_state['log']=logging.getLogger()
         InitializeLogging()
+    # Load list of models
+    model_dictionary=ollama.list()
+    model_list=list()
+    for m in model_dictionary['models']:
+        model_list.append(m['name'])
+    st.session_state['model_list']=model_list
     st.sidebar.header('Ollama Chatbot')
     # Provide a list of modules to run
     module_list=(
