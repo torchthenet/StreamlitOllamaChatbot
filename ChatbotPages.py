@@ -56,11 +56,13 @@ def SetSystemMessage(system_key):
     if system_key not in st.session_state:
         today=time.strftime('%A, %B %d, %Y')
         st.session_state[system_key]=f'Today is {today}.'
+    #load_value(system_key)
     system_message=st.text_area(
             label='System message',
             label_visibility='visible',
             key=system_key,
             height=100)
+    #st.session_state[system_key]=system_message
 
 def CheckSystemMessage(messages_key,system_key):
     """ Manage the system message. If this module has just started then
