@@ -355,7 +355,7 @@ if __name__=='__main__':
     model_dictionary=ollama.list()
     model_list=list()
     for m in model_dictionary['models']:
-        model_list.append(m['name'])
+        model_list.append(m['model'])
     # Allow user to select a model
     # This default to the first model
     # Ollama sorts the list by the most recently added or edited

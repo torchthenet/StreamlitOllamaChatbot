@@ -24,6 +24,20 @@ Created: 11/11/2024
 Closed : <OPEN>
 During demo to Lois, tailoring follow-on prompt, replaced prompt with text, then change focus to prior question to copy/paste some context, then back to prompt field and earlier changes are lost. Even with ctrl-enter the changes are not persisting. Not sure if this is how Streamlit text entry field should work or if code needs to change.
 
+BUG-005: 
+Created: 1/15/2025
+Closed : 1/15/2025
+The batch files to run each bot are specific to Anaconda. The i13 laptop uses the default Python installer.
+Created a virtual environment in StreamlitExamples then edited the batch files to activate that.
+
+BUG-006: Ollama library changed
+Created: 1/15/2025
+Closed : 1/15/2025
+In Chatbot, ChatbotTabs, and ChatbotPages, a keyerror exception is raised at the line:
+    model_list.append(m['name'])
+Turns out, the dictionary returned by ollama.list() no longer has 'name' and instead uses 'model'.
+Fixed by s/'name'/'model'/.
+
 = = = = = FEATURES
 
 FEATURE-001: Save chat

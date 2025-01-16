@@ -315,7 +315,7 @@ def ListModels():
     model_list=ollama.list()['models']
     for model in model_list:
         with st.expander(
-                    label=f'Model {model['name']}',
+                    label=f'Model {model['model']}',
                     expanded=False,
                     icon=':material/stylus:'):
             st.write(model)
@@ -388,7 +388,7 @@ if __name__=='__main__':
     model_dictionary=ollama.list()
     model_list=list()
     for m in model_dictionary['models']:
-        model_list.append(m['name'])
+        model_list.append(m['model'])
     st.session_state['model_list']=model_list
     st.sidebar.header('Ollama Chatbot')
     # Provide a list of modules to run
