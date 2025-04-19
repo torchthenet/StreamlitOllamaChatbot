@@ -23,6 +23,8 @@ def StreamData(stream):
             yield chunk['message']['content']
 
 def DisplayMetrics(metrics):
+    """ Format selected ollama metrics to be readable
+    """
     metrics_string='Model: '+metrics['model']
     metrics_string+='\nPrompt tokens = '+str(metrics['prompt_eval_count'])
     metrics_string+='\nResponse tokens = '+str(metrics['eval_count'])
@@ -147,29 +149,38 @@ def ChatbotModule():
     DisplayChatHistory()
     # Provide an editable text box for the next prompt
     # the st.chat_input always displays at the bottom of the screen
-    # Pressing return submits the prompt, which makes it hard to structure
-    # a prompt with context.
-    # Switching this back to st.text_area instead.
-    # if chatbot_prompt:=st.chat_input():
-    #     st.session_state['chatbot_prompt']=chatbot_prompt
-    #     GenerateNextResponse()
-    if 'chatbot_prompt' not in st.session_state:
-        st.session_state['chatbot_prompt']='Enter your prompt here'
-    with st.expander(
-                label="Question",
-                expanded=True,
-                icon=':material/person:'):
-        chatbot_prompt=st.text_area(
-                label='Question',
-                label_visibility='collapsed',
-                value=st.session_state['chatbot_prompt'],
-                height=100)
-    st.session_state['chatbot_prompt']=chatbot_prompt
+    # Pressing return submits the prompt, which makes it impossible to 
+    # structure a prompt with context.
+    # This block uses st.chat_input instead.
+    if chatbot_prompt:=st.chat_input():
+        st.session_state['chatbot_prompt']=chatbot_prompt
+        GenerateNextResponse()
+    # This block uses st.text_area instead.
+    # if 'chatbot_prompt' not in st.session_state:
+    #     st.session_state['chatbot_prompt']='Enter your prompt here'
+    # with st.expander(
+    #             label="Question",
+    #             expanded=True,
+    #             icon=':material/person:'):
+    #     chatbot_prompt=st.text_area(
+    #             label='Question',
+    #             label_visibility='collapsed',
+    #             value=st.session_state['chatbot_prompt'],
+    #             height=100)
+    # st.session_state['chatbot_prompt']=chatbot_prompt
+    # Create 3 button areas
     button_cols=st.columns((1,2,1),vertical_alignment='center')
+    # New Chat button
     new_chat_btn=button_cols[0].button(
             'New Chat',
             help='Start a new chat',
             use_container_width=True)
+    if new_chat_btn:
+        del st.session_state['cb_system']
+        del st.session_state['cb_messages']
+        del st.session_state['cb_metrics_list']
+        st.rerun()
+    # Temperature Slider
     button_cols[1].slider(
             label='Temperature',
             value=0.1,
@@ -177,19 +188,16 @@ def ChatbotModule():
             max_value=1.0,
             step=0.1,
             key='cb_temperature')
+    # Submit Prompt button
     generate_btn=button_cols[2].button(
             'Submit',
             help='Submit prompt to large language model',
             use_container_width=True)
-    if new_chat_btn:
-        del st.session_state['cb_system']
-        del st.session_state['cb_messages']
-        del st.session_state['cb_metrics_list']
-        st.rerun()
     if generate_btn:
         GenerateNextResponse()
 
 def DebuggingModule():
+    """ Provide buttons to access debug views """
     st.write('## Debugging Module')
     st.divider()
     button_cols=st.columns(4,vertical_alignment='center')
@@ -215,6 +223,7 @@ def DebuggingModule():
     if running_btn: ShowRunningModels()
 
 def ShowSessionState():
+    """ Dump the session state """
     st.write('### Show Session State')
     for k in st.session_state.keys():
         with st.expander(
@@ -224,16 +233,19 @@ def ShowSessionState():
             st.write(st.session_state[k])
 
 def ShowModel():
+    """ Show current model """
     st.write('### Show Current Model')
     model_info=ollama.show(st.session_state['model'])
     st.write(model_info)
 
 def ListModels():
+    """ Show all available models """
     st.write('### List Available Models')
     model_list=ollama.list()
     st.write(model_list)
 
 def ShowRunningModels():
+    """ Display models currently active in ollama """
     st.write('### Show Running Models')
     running_list=ollama.ps()
     st.write(running_list)
@@ -328,10 +340,15 @@ def InitializeLogging():
     ch.setLevel(logging.INFO) # Display only INFO or higher to console
     ch.setFormatter(logformat)
     log.addHandler(ch)
-    log.debug('Script = '+__file__) # or sys.argv[0]
-    log.debug('Working directory = '+os.path.dirname(__file__)) #or os.getcwd()
+    log.info('Script full = '+__file__) # or sys.argv[0]
+    log.info('Script name = '+os.path.basename(__file__))
+    log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
 
 if __name__=='__main__':
+    # The application itself.
+    # Set up the Streamlit web page, start logging (not part of Streamlit),
+    # create the list of available models for each chat to choose from,
+
     # See https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
     # Choose page icon from one of the following:
     #  https://share.streamlit.io/streamlit/emoji-shortcodes
@@ -357,7 +374,7 @@ if __name__=='__main__':
     for m in model_dictionary['models']:
         model_list.append(m['model'])
     # Allow user to select a model
-    # This default to the first model
+    # This defaults to the first model
     # Ollama sorts the list by the most recently added or edited
     model=st.sidebar.selectbox(
             'Select model',

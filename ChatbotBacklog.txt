@@ -50,3 +50,9 @@ Created: 7:32 PM 10/29/2024
 Closed : tbd
 In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to see how many context tokens have been used and how many remain in the current context window.
 Need to interrogate active model to determine context size currently configured.
+
+FEATURE-003: Set num_ctx
+Created: 4/18/2025
+Closed: tbd
+In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to set num_ctx using a slider or text entry field.
+The slider or text field should be set to the current value so the user is aware.

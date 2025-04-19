@@ -398,7 +398,7 @@ if __name__=='__main__':
             menu_items={
                     'Get Help': None,
                     'Report a bug': None,
-                    'About': '# Ollama Chatbot' 
+                    'About': '# Ollama Chatbot Pages' 
                     } )
     # set up logging to a log file and the console
     if 'log' not in st.session_state:
