@@ -22,7 +22,8 @@ During demo to Lois, tailored system prompt did not persist after page change.
 BUG-004: Copy/Paste into prompt
 Created: 11/11/2024
 Closed : <OPEN>
-During demo to Lois, tailoring follow-on prompt, replaced prompt with text, then change focus to prior question to copy/paste some context, then back to prompt field and earlier changes are lost. Even with ctrl-enter the changes are not persisting. Not sure if this is how Streamlit text entry field should work or if code needs to change.
+During demo to Lois, tailoring follow-on prompt, replaced prompt with text, then change focus to prior question to copy/paste some context, then back to prompt field and earlier changes are lost.
+Even with ctrl-enter the changes are not persisting. Not sure if this is how Streamlit text entry field should work or if code needs to change.
 
 BUG-005: 
 Created: 1/15/2025
@@ -73,3 +74,16 @@ Created: 4/19/2025
 Closed: 4/19/2025
 In Chatbot, ChatbotTabs, ChatbotPages, the user may change the system prompt with every response.
 To support troubleshooting, or understand responses, the current system prompt should be saved along with other metrics.
+
+FEATURE-006: Add copy to clipboard to outputs and prompts
+Created: 4/20/2025
+Closed: 4/20/2025
+In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to copy their prior prompts or any responses to the clipboard.
+Solution is to replace st.write with st.code(<<<text>>>, language=None, wrap_lines=True)
+
+FEATURE-007: Use the system message included in the model
+Created: 4/20/2025
+Closed: 4/20/2025
+In Chatbot, ChatbotTabs, ChatbotPages, any model default system message should be included in st.session_state['cb_system'].
+Solution is to add a callback so that when the user changes the model, cb_system is deleted.
+Then change SetSystemMessage() to check cb_models for a system_model.

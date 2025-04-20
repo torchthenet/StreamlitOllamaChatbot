@@ -50,7 +50,7 @@ def DisplayMetrics(metrics):
                 label='Response Metrics',
                 expanded=False,
                 icon=':material/stylus:'):
-        st.text(metrics_string)
+        st.code(metrics_string, language=None, wrap_lines=True)
 
 def SetSystemMessage():
     """ By convention (and maybe necessity) the system message is the first
@@ -61,7 +61,11 @@ def SetSystemMessage():
     """
     if 'cb_system' not in st.session_state:
         today=time.strftime('%A, %B %d, %Y')
-        st.session_state['cb_system']=f'Today is {today}.'
+        st.session_state['cb_system']=f'Today is {today}. '
+        try:
+            st.session_state['cb_system']+=st.session_state['cb_models'][st.session_state['model']]['system_prompt']
+        except KeyError:
+            pass
     system_message=st.text_area(
             label='System message',
             label_visibility='visible',
@@ -126,7 +130,7 @@ def DisplayChatHistory():
                         label=label,
                         expanded=True,
                         icon=icon):
-                st.write(msg['content'])
+                st.code(msg['content'], language=None, wrap_lines=True)
             if msg['role']=='assistant':
                 DisplayMetrics(st.session_state['cb_metrics_list'][metricsIndex])
                 metricsIndex+=1
@@ -189,6 +193,8 @@ def RestoreSessionLogs():
     st.write('## Restore Session Logs')
     st.divider()
     # Upload the session log file
+    st.markdown('Upload the session log file (ChatbotSession_*.log) and the metrics log file (ChatbotSession_**_metrics.log)')
+    st.markdown('The session log file contains the chat history and the metrics log file contains the metrics for each response.')
     session_log_file=st.file_uploader(
             label='Upload a session log file',
             type='log',
@@ -205,7 +211,7 @@ def RestoreSessionLogs():
         st.session_state['cb_messages']=json.load(session_log_file)
         # Read the metrics log file and restore the metrics list
         st.session_state['cb_metrics_list']=json.load(metrics_log_file)
-        st.write('Session logs restored.')
+        st.write('Session restored.')
 
 def ChatbotModule():
     SetSystemMessage()
@@ -320,23 +326,6 @@ def ListModels():
     model_list=ollama.list()
     st.write(model_list)
     return
-    for model in model_list['models']:
-        st.write('### Model: '+model['model'])
-        st.write('Parameter Size = '+model['details']['parameter_size'])
-        model_info=ollama.show(model['model'])
-        for k in model_info.keys():
-            if k == 'details':
-                st.write('quantization_level: '+str(model_info[k]['quantization_level']))
-            if k == 'model_info':
-                for p in model_info[k].keys():
-                    #st.write(p+': '+str(model_info[k][p]))
-                    if ".context_length" == p[-15:]:
-                        st.write('Context Length: '+str(model_info[k][p]))
-                    elif "vision.embedding_length" == p[-23:]:
-                        st.write('Vision Embedding Length: '+str(model_info[k][p]))
-                    elif ".embedding_length" == p[-17:]:
-                        st.write('Embedding Length: '+str(model_info[k][p]))
-                st.write('Model Info:'+str(model_info[k]))
 
 def ShowRunningModels():
     """ Display models currently active in ollama """
@@ -375,15 +364,28 @@ def InitializeLogging():
     log.info('Script name = '+os.path.basename(__file__))
     log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
 
-def InventoryModels(model_list):
+def InventoryModels():
     """ Inventory available models. Add features/parameters to st.session_state.
     Selected details are included in every metrics summary displayed to the user.
     The max context length is used to set the slider max_value."""
     st.session_state['cb_models']=dict()
-    for model in model_list['models']:
+    model_dictionary=ollama.list()
+    for model in model_dictionary['models']:
+        try:
+            del model_vision_embedding_length
+        except NameError:
+            pass
+        try:
+            del model_system_prompt
+        except NameError:
+            pass
         model_name=model['model']
         model_parameter_size=model['details']['parameter_size']
         model_info=ollama.show(model['model'])
+        try:
+            model_system_prompt=model_info['system']
+        except KeyError:
+            pass
         for k in model_info.keys():
             if k == 'details':
                 model_quantization_level=model_info[k]['quantization_level']
@@ -406,7 +408,23 @@ def InventoryModels(model_list):
                 'context_length':model_context_length,
                 'embedding_length':model_embedding_length
                 }
+        try:
+            model_dictionary['vision_embedding_length']=model_vision_embedding_length
+        except NameError:
+            pass
+        try:
+            model_dictionary['system_prompt']=model_system_prompt
+        except NameError:
+            pass
         st.session_state['cb_models'][model_name] = model_dictionary
+
+def ResetModel():
+    """ Reset the model to the default model. This is called when the user
+    selects a different model from the sidebar.
+    Deleting cb_system causes SetSystemMessage() to check if there is a model default system prompt.
+    """
+    del st.session_state['cb_system']
+
 
 if __name__=='__main__':
     # The application itself.
@@ -438,14 +456,15 @@ if __name__=='__main__':
     for m in model_dictionary['models']:
         model_list.append(m['model'])
     # Inventory the models, adding features/parameters to st.session_state
-    InventoryModels(model_dictionary)
+    InventoryModels()
     # Allow user to select a model
     # This defaults to the first model
     # Ollama sorts the list by the most recently added or edited
     model=st.sidebar.selectbox(
             'Select model',
             model_list,
-            key='model')
+            key='model',
+            on_change=ResetModel)
     # Provide a list of modules to run
     module_list=(
             'Chatbot',
