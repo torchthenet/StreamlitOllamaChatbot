@@ -4,11 +4,11 @@ Chatbot.py - Basic chatbot app for Ollama
 """
 
 import os
-import sys
 import logging
 import streamlit as st
 import ollama
 import time
+import json
 
 
 def StreamData(stream):
@@ -19,21 +19,36 @@ def StreamData(stream):
     for chunk in stream:
         if chunk['done']:
             st.session_state['metrics']=chunk.copy()
+            st.session_state['metrics']['temperature']=st.session_state['cb_temperature']
+            st.session_state['metrics']['num_ctx']=st.session_state['cb_num_ctx']
+            model=st.session_state['model']
+            st.session_state['metrics']['parameter_size']=st.session_state['cb_models'][model]['parameter_size']
+            st.session_state['metrics']['quantization_level']=st.session_state['cb_models'][model]['quantization_level']
+            st.session_state['metrics']['context_length']=st.session_state['cb_models'][model]['context_length']
+            st.session_state['metrics']['embedding_length']=st.session_state['cb_models'][model]['embedding_length']
+            st.session_state['metrics']['system_prompt']=st.session_state['cb_system']
         else:
             yield chunk['message']['content']
 
 def DisplayMetrics(metrics):
-    """ Format selected ollama metrics to be readable
+    """ Format the selected ollama metrics to be readable
     """
     metrics_string='Model: '+metrics['model']
-    metrics_string+='\nPrompt tokens = '+str(metrics['prompt_eval_count'])
+    metrics_string+='\nParameter size = '+str(metrics['parameter_size'])
+    metrics_string+='\nQuantization level = '+str(metrics['quantization_level'])
+    metrics_string+='\nContext tokens used = '+str(metrics['prompt_eval_count'])
+    metrics_string+='\nContext token limit = '+str(metrics['num_ctx'])
+    metrics_string+='\nMax context tokens = '+str(metrics['context_length'])
     metrics_string+='\nResponse tokens = '+str(metrics['eval_count'])
+    metrics_string+='\nMax response tokens = '+str(metrics['embedding_length'])
+    metrics_string+='\nTemperature = '+str(metrics['temperature'])
     milliseconds=metrics['total_duration']/1000000
     seconds=round(milliseconds/1000,2)
     metrics_string+='\nDuration (seconds) = '+str(seconds)
+    metrics_string+='\nSystem prompt = '+metrics['system_prompt']
     with st.expander(
                 label='Response Metrics',
-                expanded=True,
+                expanded=False,
                 icon=':material/stylus:'):
         st.text(metrics_string)
 
@@ -84,13 +99,15 @@ def DisplayChatHistory():
     box with an icon and role name. Every response message is followed by the
     metrics from that query and response.
     If this module has just launched then create empty lists to fill in later.
+    Assume there is one metrics entry for each response message. No checks are made to ensure this.
+    Since the user can restore a session from files they can edit, this may not be true.
     """
     if 'cb_messages' not in st.session_state:
         st.session_state['cb_messages']=list()
         st.session_state['cb_metrics_list']=list()
     CheckSystemMessage()
     if len(st.session_state['cb_messages']):
-        j=0
+        metricsIndex=0
         for msg in st.session_state['cb_messages']:
             match msg['role']:
                 case 'user':
@@ -111,15 +128,15 @@ def DisplayChatHistory():
                         icon=icon):
                 st.write(msg['content'])
             if msg['role']=='assistant':
-                DisplayMetrics(st.session_state['cb_metrics_list'][j])
-                j+=1
+                DisplayMetrics(st.session_state['cb_metrics_list'][metricsIndex])
+                metricsIndex+=1
     st.divider()
 
 def GenerateNextResponse():
     """ Handle the generate response button. First, add the user's prompt
     to the messages list, then obtain and add the LLM response. Also, save
     the metrics to the chatbot metrics list.
-    The LLM query includes the current temperature.
+    The LLM query includes the current temperature and context size.
     Call st.rerun to force display of the user prompt in a non-editable way.
     """
     message={'role':'user',
@@ -129,7 +146,8 @@ def GenerateNextResponse():
     stream=ollama.chat(
             model=st.session_state['model'],
             messages=st.session_state['cb_messages'],
-            options={'temperature':st.session_state['cb_temperature']},
+            options={'temperature':st.session_state['cb_temperature'],
+                     'num_ctx':st.session_state['cb_num_ctx']},
             stream=True)
     with st.expander(
                 label='Response',
@@ -141,7 +159,53 @@ def GenerateNextResponse():
             }
     st.session_state['cb_messages'].append(message)
     st.session_state['cb_metrics_list'].append(st.session_state['metrics'])
+    UpdateSessionLogs()
     st.rerun()
+
+def UpdateSessionLogs():
+    """ Create or update logs of the prompts, responses, and metrics in the session."""
+    if 'cb_session_log_file' not in st.session_state:
+        """ Create filenames for this session log and the metrics log.
+        Create new log files if they do not exist."""
+        now=time.strftime('%Y-%m-%d-%H%M%S')
+        cb_session_log_file=f'ChatbotSession_{now}.log'
+        st.session_state['cb_session_log_file'] = cb_session_log_file
+        cb_metrics_log_file=f'ChatbotSession_{now}_metrics.log'
+        st.session_state['cb_metrics_log_file'] = cb_metrics_log_file
+        with open(cb_session_log_file, 'w') as f:
+            f.write('Chatbot Session Log\n')
+        with open(cb_metrics_log_file, 'w') as f:
+            f.write('Chatbot Metrics Log\n')
+    # Write the current prompt and response to the session log file
+    with open(st.session_state['cb_session_log_file'], 'w') as f:
+        json.dump(st.session_state['cb_messages'], f, indent=4)
+    # Write the current metrics to the metrics log file
+    with open(st.session_state['cb_metrics_log_file'], 'w') as f:
+        json.dump(st.session_state['cb_metrics_list'], f, indent=4)
+
+def RestoreSessionLogs():
+    """ Restore the session and metrics lists from user provided log files.
+    There is no check to see if the files are valid. """
+    st.write('## Restore Session Logs')
+    st.divider()
+    # Upload the session log file
+    session_log_file=st.file_uploader(
+            label='Upload a session log file',
+            type='log',
+            label_visibility='collapsed',
+            key='session_log_file')
+    # Upload the metrics log file
+    metrics_log_file=st.file_uploader(
+            label='Upload a metrics log file',
+            type='log',
+            label_visibility='collapsed',
+            key='metrics_log_file')
+    if session_log_file and metrics_log_file:
+        # Read the session log file and restore the messages list
+        st.session_state['cb_messages']=json.load(session_log_file)
+        # Read the metrics log file and restore the metrics list
+        st.session_state['cb_metrics_list']=json.load(metrics_log_file)
+        st.write('Session logs restored.')
 
 def ChatbotModule():
     SetSystemMessage()
@@ -169,7 +233,7 @@ def ChatbotModule():
     #             height=100)
     # st.session_state['chatbot_prompt']=chatbot_prompt
     # Create 3 button areas
-    button_cols=st.columns((1,2,1),vertical_alignment='center')
+    button_cols=st.columns((1,1,2),vertical_alignment='center')
     # New Chat button
     new_chat_btn=button_cols[0].button(
             'New Chat',
@@ -183,18 +247,30 @@ def ChatbotModule():
     # Temperature Slider
     button_cols[1].slider(
             label='Temperature',
+            help='Adjust the randomness of the responses',
             value=0.1,
             min_value=0.0,
             max_value=1.0,
             step=0.1,
             key='cb_temperature')
-    # Submit Prompt button
-    generate_btn=button_cols[2].button(
-            'Submit',
-            help='Submit prompt to large language model',
-            use_container_width=True)
-    if generate_btn:
-        GenerateNextResponse()
+    # Context Size Slider
+    model=st.session_state['model']
+    max_context_size=st.session_state['cb_models'][model]['context_length']
+    button_cols[2].slider(
+            label='Context token limit',
+            help='Adjust the number of context tokens',
+            value=2048,
+            min_value=0,
+            max_value=max_context_size,
+            step=1024,
+            key='cb_num_ctx')
+    # Submit Prompt button (only use this if the text area is used)
+    # generate_btn=button_cols[3].button(
+    #         'Submit',
+    #         help='Submit prompt to large language model',
+    #         use_container_width=True)
+    # if generate_btn:
+    #     GenerateNextResponse()
 
 def DebuggingModule():
     """ Provide buttons to access debug views """
@@ -243,6 +319,24 @@ def ListModels():
     st.write('### List Available Models')
     model_list=ollama.list()
     st.write(model_list)
+    return
+    for model in model_list['models']:
+        st.write('### Model: '+model['model'])
+        st.write('Parameter Size = '+model['details']['parameter_size'])
+        model_info=ollama.show(model['model'])
+        for k in model_info.keys():
+            if k == 'details':
+                st.write('quantization_level: '+str(model_info[k]['quantization_level']))
+            if k == 'model_info':
+                for p in model_info[k].keys():
+                    #st.write(p+': '+str(model_info[k][p]))
+                    if ".context_length" == p[-15:]:
+                        st.write('Context Length: '+str(model_info[k][p]))
+                    elif "vision.embedding_length" == p[-23:]:
+                        st.write('Vision Embedding Length: '+str(model_info[k][p]))
+                    elif ".embedding_length" == p[-17:]:
+                        st.write('Embedding Length: '+str(model_info[k][p]))
+                st.write('Model Info:'+str(model_info[k]))
 
 def ShowRunningModels():
     """ Display models currently active in ollama """
@@ -259,69 +353,6 @@ def ResetModule():
         if k != 'log':
             del st.session_state[k]
     st.write('Application State Was Reset :material/reset_settings:')
-
-def DemonstrationModule():
-    """ Demo and test Streamlit components
-    """
-    # https://docs.streamlit.io/develop/api-reference/status
-    button_cols=st.columns(5,vertical_alignment='center')
-    success_btn=button_cols[0].button(
-            'Success',
-            help="Demonstrate the success callout",
-            use_container_width=True)
-    info_btn=button_cols[1].button(
-            'Info',
-            help="Demonstrate the info callout",
-            use_container_width=True)
-    warn_btn=button_cols[2].button(
-            'Warn',
-            help="Demonstrate the warn callout",
-            use_container_width=True)
-    err_btn=button_cols[3].button(
-            'Error',
-            help="Demonstrate the error callout",
-            use_container_width=True)
-    exception_btn=button_cols[4].button(
-            'Exception',
-            help="Demonstrate the exception callout",
-            use_container_width=True)
-    if success_btn:
-        st.success('A :blue[success] message!',icon=':material/thumb_up:')
-    if info_btn:
-        st.info('An :green[info] message!',icon=':material/info:')
-    if warn_btn:
-        st.warning('A :orange[warn] message!',icon=':material/warning:')
-    if err_btn:
-        st.error('An :red[error] message!',icon=':material/report:')
-    if exception_btn:
-        st.exception('This is an exception message!')
-    # https://docs.streamlit.io/develop/api-reference/layout
-    button_cols=st.columns(5,vertical_alignment='center')
-    modal_btn=button_cols[0].button(
-            'Modal Dialog',
-            help="Demonstrate a modal dialog",
-            use_container_width=True)
-    popover_btn=button_cols[1].button(
-            'Popover',
-            help="Demonstrate a popover",
-            use_container_width=True)
-    toast_btn=button_cols[2].button(
-            'Toast',
-            help="Demonstrate a toast",
-            use_container_width=True)
-    if modal_btn:
-        DemonstrationDialog()
-    if popover_btn:
-        with st.popover('Demonstrate Popover',help='This is a popover'):
-            st.write(':blue[Popover] message')
-    if toast_btn:
-        st.toast('This is a :red[toast]!',icon=':material/bolt:')
-
-@st.dialog('Demonstration Dialog')
-def DemonstrationDialog():
-    st.write('Press :red[Close]')
-    if st.button('Close'):
-        st.rerun()
 
 def InitializeLogging():
     """ My typical Python logging utility adapted for Streamlit
@@ -344,6 +375,39 @@ def InitializeLogging():
     log.info('Script name = '+os.path.basename(__file__))
     log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
 
+def InventoryModels(model_list):
+    """ Inventory available models. Add features/parameters to st.session_state.
+    Selected details are included in every metrics summary displayed to the user.
+    The max context length is used to set the slider max_value."""
+    st.session_state['cb_models']=dict()
+    for model in model_list['models']:
+        model_name=model['model']
+        model_parameter_size=model['details']['parameter_size']
+        model_info=ollama.show(model['model'])
+        for k in model_info.keys():
+            if k == 'details':
+                model_quantization_level=model_info[k]['quantization_level']
+            if k == 'model_info':
+                for p in model_info[k].keys():
+                    # Context length is capped at 100k (102400) even though some models have larger context lengths.
+                    # Vision embedding length is not currently used in the chatbot module.
+                    if ".context_length" == p[-15:]:
+                        model_context_length=model_info[k][p]
+                        if model_context_length > 102400:
+                            model_context_length=102400
+                    elif "vision.embedding_length" == p[-23:]:
+                        model_vision_embedding_length=model_info[k][p]
+                    elif ".embedding_length" == p[-17:]:
+                        model_embedding_length=model_info[k][p]
+        model_dictionary={
+                'name':model_name,
+                'parameter_size':model_parameter_size,
+                'quantization_level':model_quantization_level,
+                'context_length':model_context_length,
+                'embedding_length':model_embedding_length
+                }
+        st.session_state['cb_models'][model_name] = model_dictionary
+
 if __name__=='__main__':
     # The application itself.
     # Set up the Streamlit web page, start logging (not part of Streamlit),
@@ -361,7 +425,7 @@ if __name__=='__main__':
             menu_items={
                     'Get Help': None,
                     'Report a bug': None,
-                    'About': '# Ollama Chatbot' 
+                    'About': '# Ollama Chatbot'
                     } )
     # set up logging to a log file and the console
     if 'log' not in st.session_state:
@@ -373,6 +437,8 @@ if __name__=='__main__':
     model_list=list()
     for m in model_dictionary['models']:
         model_list.append(m['model'])
+    # Inventory the models, adding features/parameters to st.session_state
+    InventoryModels(model_dictionary)
     # Allow user to select a model
     # This defaults to the first model
     # Ollama sorts the list by the most recently added or edited
@@ -383,7 +449,7 @@ if __name__=='__main__':
     # Provide a list of modules to run
     module_list=(
             'Chatbot',
-            'Demonstration',
+            'Restore',
             'Debugging',
             'Reset')
     module=st.sidebar.selectbox(
@@ -393,7 +459,7 @@ if __name__=='__main__':
     # Run the selected module
     match module:
         case 'Chatbot': ChatbotModule()
-        case 'Demonstration': DemonstrationModule()
+        case 'Restore': RestoreSessionLogs()
         case 'Debugging': DebuggingModule()
         case 'Reset': ResetModule()
         case _: st.write(':construction_worker: Something is broken.')

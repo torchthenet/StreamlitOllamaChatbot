@@ -42,17 +42,34 @@ Fixed by s/'name'/'model'/.
 
 FEATURE-001: Save chat
 Created: 7:30 PM 10/29/2024
-Closed : tbd
+Closed : 4/19/2025
 In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to save the chat to a text file.
+Initial version saves the full prompt, response, and metrics list every time a prompt is submitted.
+A future version may improve this by appending instead of overwriting. But it's easy to use
+json.dump and json.load to save and restore the lists. Appending is more complicated.
 
 FEATURE-002: Monitor token use
 Created: 7:32 PM 10/29/2024
-Closed : tbd
+Closed : 4/19/2025
 In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to see how many context tokens have been used and how many remain in the current context window.
 Need to interrogate active model to determine context size currently configured.
+Added startup method that inventories models and saves max context size. This is used to set the context token slider max.
 
 FEATURE-003: Set num_ctx
 Created: 4/18/2025
-Closed: tbd
+Closed: 4/19/2025
 In Chatbot, ChatbotTabs, ChatbotPages, the user should be able to set num_ctx using a slider or text entry field.
 The slider or text field should be set to the current value so the user is aware.
+Initial version does not check what the max context size of the model is. User may set to more than the model supports.
+
+FEATURE-004: Include temperature in metrics
+Created: 4/19/2025
+Closed: 4/19/2025
+In Chatbot, ChatbotTabs, ChatbotPages, the user should see the temperature setting in the metrics for each response.
+The temperature is not part of each metrics entry in the list, and is displayed to the user for each response.
+
+FEATURE-005: Include system prompt in metrics
+Created: 4/19/2025
+Closed: 4/19/2025
+In Chatbot, ChatbotTabs, ChatbotPages, the user may change the system prompt with every response.
+To support troubleshooting, or understand responses, the current system prompt should be saved along with other metrics.
