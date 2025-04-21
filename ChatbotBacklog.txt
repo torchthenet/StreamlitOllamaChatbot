@@ -87,3 +87,10 @@ Closed: 4/20/2025
 In Chatbot, ChatbotTabs, ChatbotPages, any model default system message should be included in st.session_state['cb_system'].
 Solution is to add a callback so that when the user changes the model, cb_system is deleted.
 Then change SetSystemMessage() to check cb_models for a system_model.
+
+FEATURE-008: Utility to recover data from logs
+Created: 4/20/2025
+Closed: <OPEN>
+The logs created by FEATURE-001 are json dumps. While the text file can be viewed, it's very hard to read.
+It's not possible to copy and paste from the log file into a prompt.
+A utility is needed (maybe in DataWrangler?) to parse these files into something usable.

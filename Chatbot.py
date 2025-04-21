@@ -130,7 +130,7 @@ def DisplayChatHistory():
                         label=label,
                         expanded=True,
                         icon=icon):
-                st.code(msg['content'], language=None, wrap_lines=True)
+                st.code(msg['content'], language='markdown', wrap_lines=True)
             if msg['role']=='assistant':
                 DisplayMetrics(st.session_state['cb_metrics_list'][metricsIndex])
                 metricsIndex+=1
@@ -423,8 +423,8 @@ def ResetModel():
     selects a different model from the sidebar.
     Deleting cb_system causes SetSystemMessage() to check if there is a model default system prompt.
     """
-    del st.session_state['cb_system']
-
+    if 'cb_system' in st.session_state:
+        del st.session_state['cb_system']
 
 if __name__=='__main__':
     # The application itself.
