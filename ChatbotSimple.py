@@ -231,10 +231,9 @@ def ChatbotModule():
     Display the message history and provide text input and buttons.
     """
     # Get a list of available ollama models for the selectbox
-    model_dictionary=ollama.list()
     model_list=list()
-    for m in model_dictionary['models']:
-        model_list.append(m['model'])
+    for m in st.session_state['sys_models'].keys():
+        model_list.append(m)
     # Allow user to select a model
     # This defaults to the first model
     # Ollama sorts the list by the most recently added or edited
@@ -355,7 +354,7 @@ def ShowRunningModels():
     st.write(running_list)
 
 def ResetModule():
-    """ This does the same as a browser refresh. """
+    """ This does the same as a browser refresh but preserves the log and sys_models. """
     st.divider()
     st.write('## Reset Module')
     for k in st.session_state.keys():
@@ -445,7 +444,7 @@ if __name__=='__main__':
             menu_items={
                     'Get Help': None,
                     'Report a bug': None,
-                    'About': '# Ollama Chatbot'
+                    'About': '# Simple Chatbot for Ollama'
                     } )
     # Inventory available Ollama models, adding features/parameters to st.session_state
     InventoryModels()

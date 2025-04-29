@@ -4,6 +4,17 @@ Chatbot.py - Increasingly complicated chatbot app for Ollama
 Refactored to combine ChatbotPages and perhaps ChatbotTabs.
 The latest (hopefully working) version should always be available here:
 https://github.com/torchthenet/StreamlitOllamaChatbot
+
+Features:
+- run one or mulitple chat sessions at a time.
+- select a model and enter a prompt.
+- edit the system message
+- view the chat history.
+- view the metrics for each response.
+- reset the application state.
+- view the session state and model information.
+- view the available models and running models.
+- restore a session from a log file.
 """
 
 import os
@@ -205,8 +216,8 @@ def GenerateNextResponse(session):
 def UpdateSessionLogs(session_log_key,metrics_log_key,messages_key,metrics_key):
     """ Create or update logs of the prompts, responses, and metrics in the session."""
     if session_log_key not in st.session_state:
-        """ Create filenames for this session log and the metrics log.
-        Create new log files if they do not exist."""
+        # Create filenames for this session log and the metrics log.
+        # Create new log files if they do not exist.
         now=time.strftime('%Y-%m-%d-%H%M%S')
         cb_session_log_file=f'ChatbotSession_{now}.log'
         st.session_state[session_log_key] = cb_session_log_file
@@ -409,8 +420,7 @@ def ShowRunningModels():
     st.write(running_list)
 
 def ResetModule():
-    """ This does the same as a browser refresh
-    """
+    """ This does the same as a browser refresh but preserves the log and sys_models. """
     st.divider()
     st.write('## Reset Module')
     for k in st.session_state.keys():
@@ -439,21 +449,12 @@ def ResetModel(model_key,old_model_key,system_key):
 
 def ChatbotInterface(session):
     """ The main function for the single session chatbot interface.
-    The user can only run one chat session at a time.
-    The user can select a model and enter a prompt.
-    The user can edit the system message and view the chat history.
-    The user can view the metrics for each response.
-    The user can reset the application state.
-    The user can view the session state and model information.
-    The user can view the available models and running models.
-    The user can restore a session from a log file.
     """
     st.header('Ollama Chatbot')
     # Get a list of available ollama models for the sidebar selectbox
-    model_dictionary=ollama.list()
     model_list=list()
-    for m in model_dictionary['models']:
-        model_list.append(m['model'])
+    for m in st.session_state['sys_models'].keys():
+        model_list.append(m)
     # Allow user to select a model
     # This defaults to the first model
     # Ollama sorts the list by the most recently added or edited
@@ -508,10 +509,9 @@ def MultiChatbotInterface(session):
     """ The main function for the multi-session chatbot interface.
     The user can run multiple chat sessions at the same time."""
     # Load list of models
-    model_dictionary=ollama.list()
     model_list=list()
-    for m in model_dictionary['models']:
-        model_list.append(m['model'])
+    for m in st.session_state['sys_models'].keys():
+        model_list.append(m)
     st.session_state['model_list']=model_list
     st.sidebar.header('Ollama Chatbot')
     # Provide a toggle to enable editing the prompt
@@ -648,6 +648,7 @@ if __name__=='__main__':
         st.session_state['log']=logging.getLogger()
         InitializeLogging()
     # Inventory available Ollama models, adding features/parameters to st.session_state
+    # This should only run once as the results are cached using @st.cache_data.
     InventoryModels()
     # Define the keys used to store the session state values in a dictionary.
     # This allows the same code to be used for mutli-session and single session chatbots.
@@ -660,7 +661,7 @@ if __name__=='__main__':
     session['temperature_key']='cb_temperature'
     session['context_key']='cb_context'
     session['model_key']='cb_model'
-    session['old_model_key']='cb_old_model'
+    session['old_model_key']='cb_model_old'
     session['session_log_key']='cb_session_log_file'
     session['metrics_log_key']='cb_metrics_log_file'
     # Set up the user interface - the single chatbot or the multi-session chatbot
@@ -672,6 +673,5 @@ if __name__=='__main__':
     else:
         # This is the default single session chatbot interface
         ChatbotInterface(session)
-
 
 # vim: set expandtab tabstop=4 shiftwidth=4 autoindent:
