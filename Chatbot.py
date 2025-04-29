@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-Chatbot.py - Basic chatbot app for Ollama
-Refactored to align with ChatbotPages and ChatbotTabs.
+Chatbot.py - Increasingly complicated chatbot app for Ollama
+Refactored to combine ChatbotPages and perhaps ChatbotTabs.
 The latest (hopefully working) version should always be available here:
 https://github.com/torchthenet/StreamlitOllamaChatbot
 """
@@ -60,7 +60,10 @@ def DisplayMetrics(metrics):
                 label='Response Metrics',
                 expanded=False,
                 icon=':material/stylus:'):
-        st.code(metrics_string, language=None, wrap_lines=True)
+        if st.session_state['clipboard_mode']:
+            st.code(metrics_string, language=None, wrap_lines=True)
+        else:
+            st.text(metrics_string)
 
 def SetSystemMessage(system_key,model_key):
     """ By convention (and maybe necessity) the system message is the first
@@ -143,23 +146,39 @@ def DisplayChatHistory(messages_key,system_key,metrics_key):
                         label=label,
                         expanded=True,
                         icon=icon):
-                st.code(msg['content'], language='markdown', wrap_lines=True)
+                if st.session_state['clipboard_mode']:
+                    st.code(msg['content'], language='markdown', wrap_lines=True)
+                else:
+                    st.markdown(msg['content'])
             if msg['role']=='assistant':
                 DisplayMetrics(st.session_state[metrics_key][metricsIndex])
                 metricsIndex+=1
     st.divider()
 
-def GenerateNextResponse(model_key,prompt_key,system_key,messages_key,metrics_key,temperature_key,context_key,session_log_key,metrics_log_key):
+def GenerateNextResponse(session):
     """ Handle prompt submission. 
     First, add the user's prompt to the messages list, then obtain and add the LLM response.
     Also, save the metrics to the chatbot metrics list.
     The LLM query includes the current temperature and context size.
     Call st.rerun to force display of the user prompt in a non-editable way.
     """
+    # Get the keys from the session dictionary
+    messages_key=session['messages_key']
+    metrics_key=session['metrics_key']
+    system_key=session['system_key']
+    prompt_key=session['prompt_key']
+    temperature_key=session['temperature_key']
+    context_key=session['context_key']
+    model_key=session['model_key']
+    old_model_key=session['old_model_key']
+    session_log_key=session['session_log_key']
+    metrics_log_key=session['metrics_log_key']
+    # Append the user prompt to the messages list
     message={'role':'user',
              'content':st.session_state[prompt_key]
             }
     st.session_state[messages_key].append(message)
+    # Get the model response and metrics
     response_metrics='metrics'
     stream=ollama.chat(
             model=st.session_state[model_key],
@@ -209,7 +228,7 @@ def RestoreSessionLogs(messages_key,metrics_key):
     There is no check to see if the files are valid. """
     st.write('## Restore Session Logs')
     st.divider()
-    st.markdown('Upload the session log file (ChatbotSession_*.log) and the metrics log file (ChatbotSession_**_metrics.log)')
+    st.markdown('Upload the session log file (ChatbotSession_*.log) and the metrics log file (ChatbotSession_*_metrics.log)')
     st.markdown('The session log file contains the chat history and the metrics log file contains the metrics for each response.')
     # Upload the session log file
     st.markdown('\n\nSession log file:')
@@ -231,10 +250,21 @@ def RestoreSessionLogs(messages_key,metrics_key):
         st.write('Session restored.')
 
 
-def ChatbotModule(model_key,prompt_key,system_key,messages_key,metrics_key,temperature_key,context_key,session_log_key,metrics_log_key):
+def ChatbotModule(session):
     """ Manage a chatbot conversation instance.
     Display the message history and provide text input and buttons.
     """
+    # Get the keys from the session dictionary
+    messages_key=session['messages_key']
+    metrics_key=session['metrics_key']
+    system_key=session['system_key']
+    prompt_key=session['prompt_key']
+    temperature_key=session['temperature_key']
+    context_key=session['context_key']
+    model_key=session['model_key']
+    old_model_key=session['old_model_key']
+    session_log_key=session['session_log_key']
+    metrics_log_key=session['metrics_log_key']
     SetSystemMessage(system_key,model_key)
     # Display the chat history if it exists
     DisplayChatHistory(messages_key,system_key,metrics_key)
@@ -242,19 +272,28 @@ def ChatbotModule(model_key,prompt_key,system_key,messages_key,metrics_key,tempe
     # 1. Use st.chat_input() to get the user prompt and submit it. This is the default.
     # 2. Use st.text_area() for more complex editing of the user prompt and submit it with a button.
     #
-    if st.session_state['expert_mode'] == False:
+    if st.session_state['editor_mode'] == False:
         # Here is option 1 - using st.chat_input()
         # The st.chat_input always displays at the bottom of the screen.
         # Pressing return submits the prompt, which makes it impossible to structure a prompt with context.
         if chatbot_prompt:=st.chat_input():
             st.session_state[prompt_key]=chatbot_prompt
-            GenerateNextResponse(model_key,prompt_key,system_key,messages_key,metrics_key,temperature_key,context_key,session_log_key,metrics_log_key)
+            GenerateNextResponse(session)
         # With this option there should not be a submit button as this will confuse the user and the code.
         # Create 3 button areas
         button_cols=st.columns((1,1,2),vertical_alignment='center')
         #
     else:
         # This is option 2 - using st.text_area()
+        # With this option there should be a submit button to generate the response.
+        # Create 4 button areas
+        button_cols=st.columns((1,1,1,1),vertical_alignment='center')
+        generate_btn=button_cols[3].button(
+                'Submit',
+                help='Submit prompt to large language model',
+                use_container_width=True)
+        if generate_btn:
+            GenerateNextResponse(session)
         # Provide an editable text box for the next prompt
         # This block uses st.text_area instead.
         if prompt_key not in st.session_state:
@@ -271,15 +310,6 @@ def ChatbotModule(model_key,prompt_key,system_key,messages_key,metrics_key,tempe
                     height=100,
                     on_change=update_key,
                     args=[prompt_key])
-        # With this option there should be a submit button to generate the response.
-        # Create 4 button areas
-        button_cols=st.columns((1,1,1,1),vertical_alignment='center')
-        generate_btn=button_cols[3].button(
-                'Submit',
-                help='Submit prompt to large language model',
-                use_container_width=True)
-        if generate_btn:
-            GenerateNextResponse(model_key,prompt_key,system_key,messages_key,metrics_key,temperature_key,context_key,session_log_key,metrics_log_key)
     #
     # Both options have the following three widgets.
     # New Chat button
@@ -392,26 +422,131 @@ def ResetModule():
             del st.session_state[k]
     st.write('Application State Was Reset :material/reset_settings:')
 
-def InitializeLogging():
-    """ My typical Python logging utility adapted for Streamlit
+def ResetModel(model_key,old_model_key,system_key):
+    """ Reset the model to the default model. This is called when the user
+    selects a different model from the sidebar.
+    Deleting cb_system causes SetSystemMessage() to check if there is a model default system prompt.
+    A simple delete of the system_key results in issues - can't edit/update system prompt.
+    Instead need to check if the new model is different from the old model.
     """
-    log=st.session_state['log']
-    log.setLevel(logging.NOTSET)
-    logformat=logging.Formatter(
-            '%(asctime)s: %(levelname)8s: %(levelno)2s: %(message)s')
-    # Set file logging
-    fh=logging.FileHandler('Chatbot.log')
-    fh.setLevel(logging.INFO)
-    fh.setFormatter(logformat)
-    log.addHandler(fh)
-    # Set console logging
-    ch=logging.StreamHandler()
-    ch.setLevel(logging.INFO) # Display only INFO or higher to console
-    ch.setFormatter(logformat)
-    log.addHandler(ch)
-    log.info('Script full = '+__file__) # or sys.argv[0]
-    log.info('Script name = '+os.path.basename(__file__))
-    log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
+    if "_"+model_key not in st.session_state.keys():
+        return
+    update_key(model_key)
+    if model_key != old_model_key:
+        old_model_key=model_key
+        if system_key in st.session_state:
+            del st.session_state[system_key]
+
+def ChatbotInterface(session):
+    """ The main function for the single session chatbot interface.
+    The user can only run one chat session at a time.
+    The user can select a model and enter a prompt.
+    The user can edit the system message and view the chat history.
+    The user can view the metrics for each response.
+    The user can reset the application state.
+    The user can view the session state and model information.
+    The user can view the available models and running models.
+    The user can restore a session from a log file.
+    """
+    st.header('Ollama Chatbot')
+    # Get a list of available ollama models for the sidebar selectbox
+    model_dictionary=ollama.list()
+    model_list=list()
+    for m in model_dictionary['models']:
+        model_list.append(m['model'])
+    # Allow user to select a model
+    # This defaults to the first model
+    # Ollama sorts the list by the most recently added or edited
+    load_key(session['model_key'])
+    model=st.sidebar.selectbox(
+            'Select model',
+            model_list,
+            key="_"+session['model_key'],
+            on_change=ResetModel,
+            args=[session['model_key'],session['old_model_key'],session['system_key']])
+    if session['model_key'] not in st.session_state.keys():
+        st.session_state[session['model_key']]=model
+    if session['old_model_key'] not in st.session_state.keys():
+        st.session_state[session['old_model_key']]=model
+    # Provide a toggle to enable editing the prompt
+    expert_mode=st.sidebar.toggle(
+            label='Prompt Editor Mode',
+            value=False,
+            help='Enable mode to simplify editing prompt entry.',
+            key='editor_mode')
+    # Provide a toggle to enable copy to clipboard mode
+    copy_mode=st.sidebar.toggle(
+            label='Copy to Clipboard Mode',
+            value=False,
+            help='Enable mode to add a copy to clipboard icon on messages.',
+            key='clipboard_mode')
+    # Provide a toggle to enable multi-session mode
+    multi_mode=st.sidebar.toggle(
+            label='Multi-Session Mode',
+            value=False,
+            help='Enable mode to allow multiple chat sessions.',
+            key='multi_mode')
+    # Provide a list of modules to run
+    module_list=(
+            'Chatbot',
+            'Restore',
+            'Debugging',
+            'Reset')
+    module=st.sidebar.selectbox(
+            'Select a module',
+            module_list,
+            key='module')
+    # Run the selected module
+    match module:
+        case 'Chatbot': ChatbotModule(session)
+        case 'Restore': RestoreSessionLogs(session['messages_key'],session['metrics_key'])
+        case 'Debugging': DebuggingModule(session['model_key'])
+        case 'Reset': ResetModule()
+        case _: st.write(':construction_worker: Something is broken.')
+
+def MultiChatbotInterface(session):
+    """ The main function for the multi-session chatbot interface.
+    The user can run multiple chat sessions at the same time."""
+    # Load list of models
+    model_dictionary=ollama.list()
+    model_list=list()
+    for m in model_dictionary['models']:
+        model_list.append(m['model'])
+    st.session_state['model_list']=model_list
+    st.sidebar.header('Ollama Chatbot')
+    # Provide a toggle to enable editing the prompt
+    expert_mode=st.sidebar.toggle(
+            label='Prompt Editor Mode',
+            value=False,
+            help='Enable mode to simplify editing prompt entry.',
+            key='editor_mode')
+    # Provide a toggle to enable copy to clipboard mode
+    copy_mode=st.sidebar.toggle(
+            label='Copy to Clipboard Mode',
+            value=False,
+            help='Enable mode to add a copy to clipboard icon on messages.',
+            key='clipboard_mode')
+    # Provide a toggle to enable multi-session mode
+    multi_mode=st.sidebar.toggle(
+            label='Multi-Session Mode',
+            value=False,
+            help='Enable mode to allow multiple chat sessions.',
+            key='multi_mode')
+    # Provide a list of modules to run
+    module_list=(
+            'Chatbot',
+            'Debugging',
+            'Reset')
+    module=st.sidebar.selectbox(
+            'Select a module',
+            module_list,
+            key='module')
+    # Run the selected module
+    match module:
+        case 'Chatbot': ChatbotModule(session)
+        case 'Debugging': DebuggingModule()
+        case 'Reset': ResetModule()
+        case _: st.write(':construction_worker: Something is broken.')
 
 @st.cache_data
 def InventoryModels():
@@ -467,26 +602,33 @@ def InventoryModels():
             pass
         st.session_state['sys_models'][model_name] = model_dictionary
 
-def ResetModel(model_key,old_model_key,system_key):
-    """ Reset the model to the default model. This is called when the user
-    selects a different model from the sidebar.
-    Deleting cb_system causes SetSystemMessage() to check if there is a model default system prompt.
-    A simple delete of the system_key results in issues - can't edit/update system prompt.
-    Instead need to check if the new model is different from the old model.
+def InitializeLogging():
+    """ My typical Python logging utility adapted for Streamlit
     """
-    if "_"+model_key not in st.session_state.keys():
-        return
-    update_key(model_key)
-    if model_key != old_model_key:
-        old_model_key=model_key
-        if system_key in st.session_state:
-            del st.session_state[system_key]
+    log=st.session_state['log']
+    log.setLevel(logging.NOTSET)
+    logformat=logging.Formatter(
+            '%(asctime)s: %(levelname)8s: %(levelno)2s: %(message)s')
+    # Set file logging
+    fh=logging.FileHandler('Chatbot.log')
+    fh.setLevel(logging.INFO)
+    fh.setFormatter(logformat)
+    log.addHandler(fh)
+    # Set console logging
+    ch=logging.StreamHandler()
+    ch.setLevel(logging.INFO) # Display only INFO or higher to console
+    ch.setFormatter(logformat)
+    log.addHandler(ch)
+    log.info('Script full = '+__file__) # or sys.argv[0]
+    log.info('Script name = '+os.path.basename(__file__))
+    log.info('Script path = '+os.path.dirname(__file__)) # or os.getcwd()
 
 if __name__=='__main__':
     # The application itself.
-    # Set up the Streamlit web page, start logging (not part of Streamlit),
-    # create the list of available models for each chat to choose from,
-
+    # - Set up the Streamlit web page
+    # - Start logging (not part of Streamlit)
+    # - Set up the basic chatbot interface
+    #
     # See https://docs.streamlit.io/develop/api-reference/configuration/st.set_page_config
     # Choose page icon from one of the following:
     #  https://share.streamlit.io/streamlit/emoji-shortcodes
@@ -505,64 +647,31 @@ if __name__=='__main__':
     if 'log' not in st.session_state:
         st.session_state['log']=logging.getLogger()
         InitializeLogging()
-    st.header('Ollama Chatbot')
-    # Define the keys used to store the session state values
-    # This allows the same code to be used in ChatbotPages and ChatbotTabs
-    # All of the session keys start with 'cb_' to help identify them in the debugging module
-    messages_key='cb_messages'
-    metrics_key='cb_metrics'
-    system_key='cb_system'
-    prompt_key='cb_prompt'
-    temperature_key='cb_temperature'
-    context_key='cb_context'
-    model_key='cb_model'
-    old_model_key='cb_old_model'
-    session_log_key='cb_session_log_file'
-    metrics_log_key='cb_metrics_log_file'
     # Inventory available Ollama models, adding features/parameters to st.session_state
     InventoryModels()
-    # Get a list of available ollama models for the sidebar selectbox
-    model_dictionary=ollama.list()
-    model_list=list()
-    for m in model_dictionary['models']:
-        model_list.append(m['model'])
-    # Allow user to select a model
-    # This defaults to the first model
-    # Ollama sorts the list by the most recently added or edited
-    load_key(model_key)
-    model=st.sidebar.selectbox(
-            'Select model',
-            model_list,
-            key="_"+model_key,
-            on_change=ResetModel,
-            args=[model_key,old_model_key,system_key])
-    if model_key not in st.session_state.keys():
-        st.session_state[model_key]=model
-    if old_model_key not in st.session_state.keys():
-        st.session_state[old_model_key]=model
-    # Provide an expert mode toggle
-    expert_mode=st.sidebar.toggle(
-            label='Expert Mode',
-            value=False,
-            help='Enable expert mode to change prompt entry.',
-            key='expert_mode')
-    # Provide a list of modules to run
-    module_list=(
-            'Chatbot',
-            'Restore',
-            'Debugging',
-            'Reset')
-    module=st.sidebar.selectbox(
-            'Select a module',
-            module_list,
-            key='module')
-    # Run the selected module
-    match module:
-        case 'Chatbot':
-            ChatbotModule(model_key,prompt_key,system_key,messages_key,metrics_key,temperature_key,context_key,session_log_key,metrics_log_key)
-        case 'Restore': RestoreSessionLogs(messages_key,metrics_key)
-        case 'Debugging': DebuggingModule(model_key)
-        case 'Reset': ResetModule()
-        case _: st.write(':construction_worker: Something is broken.')
+    # Define the keys used to store the session state values in a dictionary.
+    # This allows the same code to be used for mutli-session and single session chatbots.
+    # All of the session keys start with 'cb_' to help identify them in the debugging module
+    session=dict()
+    session['messages_key']='cb_messages'
+    session['metrics_key']='cb_metrics'
+    session['system_key']='cb_system'
+    session['prompt_key']='cb_prompt'
+    session['temperature_key']='cb_temperature'
+    session['context_key']='cb_context'
+    session['model_key']='cb_model'
+    session['old_model_key']='cb_old_model'
+    session['session_log_key']='cb_session_log_file'
+    session['metrics_log_key']='cb_metrics_log_file'
+    # Set up the user interface - the single chatbot or the multi-session chatbot
+    if 'multi_mode' not in st.session_state:
+        st.session_state['multi_mode']=False
+    if st.session_state['multi_mode']:
+        # This is the multi-session chatbot interface
+        MultiChatbotInterface(session)
+    else:
+        # This is the default single session chatbot interface
+        ChatbotInterface(session)
+
 
 # vim: set expandtab tabstop=4 shiftwidth=4 autoindent:
