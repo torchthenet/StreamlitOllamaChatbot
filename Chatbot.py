@@ -451,6 +451,16 @@ def ChatbotInterface(session):
     """ The main function for the single session chatbot interface.
     """
     st.header('Ollama Chatbot')
+    # Provide a list of modules to run
+    module_list=(
+            'Chatbot',
+            'Restore',
+            'Debugging',
+            'Reset')
+    module=st.sidebar.selectbox(
+            'Select a module',
+            module_list,
+            key='module')
     # Get a list of available ollama models for the sidebar selectbox
     model_list=list()
     for m in st.session_state['sys_models'].keys():
@@ -471,13 +481,13 @@ def ChatbotInterface(session):
         st.session_state[session['old_model_key']]=model
     # Provide a toggle to enable editing the prompt
     expert_mode=st.sidebar.toggle(
-            label='Prompt Editor Mode',
+            label='Prompt Edit Mode',
             value=False,
             help='Enable mode to simplify editing prompt entry.',
             key='editor_mode')
     # Provide a toggle to enable copy to clipboard mode
     copy_mode=st.sidebar.toggle(
-            label='Copy to Clipboard Mode',
+            label='Clipboard Mode',
             value=False,
             help='Enable mode to add a copy to clipboard icon on messages.',
             key='clipboard_mode')
@@ -487,16 +497,6 @@ def ChatbotInterface(session):
             value=False,
             help='Enable mode to allow multiple chat sessions.',
             key='multi_mode')
-    # Provide a list of modules to run
-    module_list=(
-            'Chatbot',
-            'Restore',
-            'Debugging',
-            'Reset')
-    module=st.sidebar.selectbox(
-            'Select a module',
-            module_list,
-            key='module')
     # Run the selected module
     match module:
         case 'Chatbot': ChatbotModule(session)
@@ -508,6 +508,17 @@ def ChatbotInterface(session):
 def MultiChatbotInterface(session):
     """ The main function for the multi-session chatbot interface.
     The user can run multiple chat sessions at the same time."""
+    st.header('Ollama Multi Chatbot')
+    # Provide a list of modules to run
+    module_list=(
+            'Chatbot',
+            'Restore',
+            'Debugging',
+            'Reset')
+    module=st.sidebar.selectbox(
+            'Select a module',
+            module_list,
+            key='module')
     # Load list of models
     model_list=list()
     for m in st.session_state['sys_models'].keys():
@@ -516,13 +527,13 @@ def MultiChatbotInterface(session):
     st.sidebar.header('Ollama Chatbot')
     # Provide a toggle to enable editing the prompt
     expert_mode=st.sidebar.toggle(
-            label='Prompt Editor Mode',
+            label='Prompt Edit Mode',
             value=False,
             help='Enable mode to simplify editing prompt entry.',
             key='editor_mode')
     # Provide a toggle to enable copy to clipboard mode
     copy_mode=st.sidebar.toggle(
-            label='Copy to Clipboard Mode',
+            label='Clipboard Mode',
             value=False,
             help='Enable mode to add a copy to clipboard icon on messages.',
             key='clipboard_mode')
@@ -532,19 +543,11 @@ def MultiChatbotInterface(session):
             value=False,
             help='Enable mode to allow multiple chat sessions.',
             key='multi_mode')
-    # Provide a list of modules to run
-    module_list=(
-            'Chatbot',
-            'Debugging',
-            'Reset')
-    module=st.sidebar.selectbox(
-            'Select a module',
-            module_list,
-            key='module')
     # Run the selected module
     match module:
         case 'Chatbot': ChatbotModule(session)
-        case 'Debugging': DebuggingModule()
+        case 'Restore': RestoreSessionLogs(session['messages_key'],session['metrics_key'])
+        case 'Debugging': DebuggingModule(session['model_key'])
         case 'Reset': ResetModule()
         case _: st.write(':construction_worker: Something is broken.')
 

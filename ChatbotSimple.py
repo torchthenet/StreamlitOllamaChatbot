@@ -42,10 +42,8 @@ def DisplayMetrics(metrics):
     """
     metrics_string='Model: '+metrics['model']
     metrics_string+='\nParameter size = '+str(metrics['parameter_size'])
-    metrics_string+='\nQuantization level = '+str(metrics['quantization_level'])
     metrics_string+='\nContext tokens used = '+str(metrics['prompt_eval_count'])
     metrics_string+='\nContext token limit = '+str(metrics['num_ctx'])
-    metrics_string+='\nMax context tokens = '+str(metrics['context_length'])
     metrics_string+='\nResponse tokens = '+str(metrics['eval_count'])
     metrics_string+='\nMax response tokens = '+str(metrics['embedding_length'])
     metrics_string+='\nTemperature = '+str(metrics['temperature'])
