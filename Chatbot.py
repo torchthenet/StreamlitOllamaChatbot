@@ -127,24 +127,30 @@ def MultiChatbotInterface():
     # Define the keys used to store the session state values in a dictionary
     # This allows the same code to be used for mutli-session and single session chatbots
     # All of the single or first session keys start with 'cb_' to help identify them in the debugging module
-    session=dict()
-    session['messages_key']='cb_messages'
-    session['metrics_key']='cb_metrics'
-    session['system_key']='cb_system'
-    session['prompt_key']='cb_prompt'
-    session['temperature_key']='cb_temperature'
-    session['context_key']='cb_context'
-    session['model_key']='cb_model'
-    session['old_model_key']='cb_model_old'
-    session['session_log_key']='cb_session_log_file'
-    session['metrics_log_key']='cb_metrics_log_file'
     # Set up the main panel for the single session chatbot module
     st.markdown('### Multi Session Chatbot')
     st.divider()
-    ChatbotSessionHandler(session)    
+    # Provide a list of pages to view
+    # can't use shortcodes so copy and paste the images from
+    # https://share.streamlit.io/streamlit/emoji-shortcodes
+    # 1 = ":one:", 2 = ":two:", ...
+    # debug = ":beetle:", reset = ":sparkles:"
+    pages = {
+        "Conversations": [
+            st.Page(ChatOne, title='Chat One',icon='1️⃣'),
+            st.Page(ChatTwo, title='Chat Two',icon='2️⃣'),
+            st.Page(ChatThree, title='Chat Three',icon='3️⃣'),
+        ],
+        "Debugging": [
+            st.Page(DebuggingModule, title='Debug',icon='🪲'),
+            st.Page(ResetModule, title='Reset',icon='✨'),
+        ],
+    }
+    pg = st.navigation(pages)
+    pg.run()
 
-def SingleChatbotInterface():
-    """ The main function for the single session chatbot interface."""
+def ChatOne():
+    """ Page for chat number 1 """
     # Define the keys used to store the session state values in a dictionary
     # This allows the same code to be used for mutli-session and single session chatbots
     # All of the single or first session keys start with 'cb_' to help identify them in the debugging module
@@ -159,10 +165,46 @@ def SingleChatbotInterface():
     session['old_model_key']='cb_model_old'
     session['session_log_key']='cb_session_log_file'
     session['metrics_log_key']='cb_metrics_log_file'
+    ChatbotSessionHandler(session)
+
+def ChatTwo():
+    """ Page for chat number 2 """
+    # Define the keys used to store the session state values in a dictionary
+    session=dict()
+    session['messages_key']='c2_messages'
+    session['metrics_key']='c2_metrics'
+    session['system_key']='c2_system'
+    session['prompt_key']='c2_prompt'
+    session['temperature_key']='c2_temperature'
+    session['context_key']='c2_context'
+    session['model_key']='c2_model'
+    session['old_model_key']='c2_model_old'
+    session['session_log_key']='c2_session_log_file'
+    session['metrics_log_key']='c2_metrics_log_file'
+    ChatbotSessionHandler(session)
+
+def ChatThree():
+    """ Page for chat number 3 """
+    # Define the keys used to store the session state values in a dictionary
+    session=dict()
+    session['messages_key']='c3_messages'
+    session['metrics_key']='c3_metrics'
+    session['system_key']='c3_system'
+    session['prompt_key']='c3_prompt'
+    session['temperature_key']='c3_temperature'
+    session['context_key']='c3_context'
+    session['model_key']='c3_model'
+    session['old_model_key']='c3_model_old'
+    session['session_log_key']='c3_session_log_file'
+    session['metrics_log_key']='c3_metrics_log_file'
+    ChatbotSessionHandler(session)
+
+def SingleChatbotInterface():
+    """ The main function for the single session chatbot interface."""
     # Set up the main panel for the single session chatbot module
     st.markdown('### Single Session Chatbot')
     st.divider()
-    ChatbotSessionHandler(session)
+    ChatOne()
 
 def ChatbotSessionHandler(session):
     # Define variables for each of the keys from the session dictionary
