@@ -10,14 +10,18 @@ The latest release notes are [here](https://docs.streamlit.io/develop/quick-refe
 
 Update Streamlit using instructions [here](https://docs.streamlit.io/knowledge-base/using-streamlit/how-upgrade-latest-version-streamlit)
 
+## ChatbotSimple
+
+Basic chatbot using ollama models. Download the ChatbotSimple.py file.
+
+## Chatbot
+
+Increasingly complex chatbot with single session and multi-session chats. Includes a Wrangler module, providing basic data grooming for text. Requires Chatbot.py, ChatbotUtilities.py, and ChatbotWrangler.py files.
+
 ## ChatbotPages
 
-Hold multiple conversations with Ollama models. Each tab and each question may use a different LLM. Appears to work. Need to test a little more.
+Hold multiple conversations with Ollama models. Each page and each question may use a different LLM. Requires ChatbotPages.py, and ChatbotUtilities.py files.
 
 ## ChatbotTabs
 
 Hold multiple conversations with Ollama models. Each tab and each question may use a different LLM. Incomplete.
-
-## Chatbot
-
-Basic chatbot using ollama models.
