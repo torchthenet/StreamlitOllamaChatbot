@@ -91,33 +91,6 @@ def ChatbotModule():
             help='Enable mode to add a copy to clipboard icon on messages.',
             key='clipboard_mode')
 
-def MultiChatbotInterface():
-    """ The main function for the single session chatbot interface."""
-    # Define the keys used to store the session state values in a dictionary
-    # This allows the same code to be used for mutli-session and single session chatbots
-    # All of the single or first session keys start with 'cb_' to help identify them in the debugging module
-    # Set up the main panel for the single session chatbot module
-    st.markdown('### Multi Session Chatbot')
-    st.divider()
-    # Provide a list of pages to view
-    # can't use shortcodes so copy and paste the images from
-    # https://share.streamlit.io/streamlit/emoji-shortcodes
-    # 1 = ":one:", 2 = ":two:", ...
-    # debug = ":beetle:", reset = ":sparkles:"
-    pages = {
-        "Conversations": [
-            st.Page(ChatOne, title='Chat One',icon='1️⃣'),
-            st.Page(ChatTwo, title='Chat Two',icon='2️⃣'),
-            st.Page(ChatThree, title='Chat Three',icon='3️⃣'),
-        ],
-        "Debugging": [
-            st.Page(DebuggingModule, title='Debug',icon='🪲'),
-            st.Page(ResetModule, title='Reset',icon='✨'),
-        ],
-    }
-    pg = st.navigation(pages)
-    pg.run()
-
 def ChatOne():
     """ Page for chat number 1 """
     # Define the keys used to store the session state values in a dictionary
