@@ -16,14 +16,16 @@ In ChatbotPages, user must reselect desired model for the page after viewing ano
 
 BUG-003: Lose system prompt on page change
 Created: 11/11/2024
-Closed : <OPEN>
+Closed : 5/3/2025
 During demo to Lois, tailored system prompt did not persist after page change.
+Solution - fixed with major refactor of Chatbot and ChatbotPages
 
 BUG-004: Copy/Paste into prompt
 Created: 11/11/2024
-Closed : <OPEN>
+Closed : 5/3/2025
 During demo to Lois, tailoring follow-on prompt, replaced prompt with text, then change focus to prior question to copy/paste some context, then back to prompt field and earlier changes are lost.
 Even with ctrl-enter the changes are not persisting. Not sure if this is how Streamlit text entry field should work or if code needs to change.
+Solution - fixed with major refactor of Chatbot and ChatbotPages
 
 BUG-005: 
 Created: 1/15/2025
