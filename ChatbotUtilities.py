@@ -321,13 +321,17 @@ def InventoryModels():
         model_parameter_size=model['details']['parameter_size']
         model_info=ollama.show(model['model'])
         try:
+            # Note: new ollama library version does not include this field
             model_system_prompt=model_info['system']
         except KeyError:
             pass
-        for k in model_info.keys():
+        # Note: for new ollama library version change
+        # - model_info.keys() to model_info.model_dump().keys()
+        # - k == 'model_info' to k == 'modelinfo'
+        for k in model_info.model_dump().keys():
             if k == 'details':
                 model_quantization_level=model_info[k]['quantization_level']
-            if k == 'model_info':
+            if k == 'modelinfo':
                 for p in model_info[k].keys():
                     # Context length is capped at 100k (102400) even though some models have larger context lengths.
                     # Vision embedding length is not currently used in the chatbot module.

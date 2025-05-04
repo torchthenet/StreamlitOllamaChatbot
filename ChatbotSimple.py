@@ -400,10 +400,10 @@ def InventoryModels():
             model_system_prompt=model_info['system']
         except KeyError:
             pass
-        for k in model_info.keys():
+        for k in model_info.model_dump().keys():
             if k == 'details':
                 model_quantization_level=model_info[k]['quantization_level']
-            if k == 'model_info':
+            if k == 'modelinfo':
                 for p in model_info[k].keys():
                     # Context length is capped at 100k (102400) even though some models have larger context lengths.
                     # Vision embedding length is not currently used in the chatbot module.
