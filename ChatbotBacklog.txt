@@ -41,6 +41,21 @@ In Chatbot, ChatbotTabs, and ChatbotPages, a keyerror exception is raised at the
 Turns out, the dictionary returned by ollama.list() no longer has 'name' and instead uses 'model'.
 Fixed by s/'name'/'model'/.
 
+BUG-007: Ollama library changed
+Created: 5/4/2025
+Closed: <OPEN>
+In ChatbotSimple and ChatbotUtilities, an error is raised.
+The existing code works with ollama package 0.3.3 but fails with 0.4.8. Not sure when the change occurred.
+In ChatbotSimple and ChatbotUtilities, InventoryModels():
+- model_info['system'] never succeeds
+- change model_info.keys() to model_info.model_dump().keys()
+- change k == 'model_info' to k == 'modelinfo'
+The metrics returned with a prompt query no longer includes temperature and other values.
+For now, the solution is to roll back to the older package
+$ python -m pip uninstall ollama
+$ python -m pip install ollama==0.3.3
+Most of the errors can be corrected, but the loss of the system message and metrics will take some research.
+
 = = = = = FEATURES
 
 FEATURE-001: Save chat
